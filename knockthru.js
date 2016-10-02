@@ -2,19 +2,16 @@
 
 	Usage 
 	
-	<script src='/knockthru.js'></script>
+	<script src='/kt/knockthru.js'></script>
 	...
-	<div data-knockthru='<modelname>,<search/create/update>[,option:readonly]'>
+	<div data-knockthru='kt.search(<modelname>[,filters])>
 		<p data-bind='foreach: items'>
 		...
 		</p>
 	</div>
-	
-	Note that special strings {{verbose}} and {{meanifyPath}} are replaced with the relevant options when this file is loaded
-	
+		
 	Use the model name that meanify is publishing on the endpoints (if the pluralize option is passed, add an s to the lowercase model name...)
 */
-var verbose = {{verbose}};
 
 // find the path to this script, which is also the base path for the meanify endpoints
 var scripts = document.getElementsByTagName("script");
@@ -115,6 +112,9 @@ var re = /([^,]+),([^?/]+)([/?])?(.*)?/;
 
 // our namespace - kt
 var kt = kt || {};
+
+// by default, not verbose.  overide in page script.
+kt.verbose = false;
 
 // our container for private functions (they'll be accessible but we just want to make it easier for developers to see
 // what functions they can use)
@@ -269,7 +269,7 @@ kt.searchEdit = function(modelname, filter)
 		{
 			var data = ko.mapping.toJS(item);
 			var json = JSON.stringify(data);
-			if (verbose) console.log("POSTing to UPDATE: " + json);
+			if (kt.verbose) console.log("POSTing to UPDATE: " + json);
 			viewmodel.operations.push(function(next) {
 				$.ajax({type: "POST",url:modelApiBase+'/'+data._id,data:json, 
 					contentType:"application/json; charset=utf-8",dataType:"json"})
@@ -290,7 +290,7 @@ kt.searchEdit = function(modelname, filter)
 		viewmodel.deleted().forEach(function(item)
 		{
 			var data = ko.mapping.toJS(item);
-			if (verbose) console.log("DELETING: " + data);
+			if (kt.verbose) console.log("DELETING: " + data);
 			viewmodel.operations.push(function(next) {
 				$.ajax({type: "DELETE",url:modelApiBase+'/'+data._id})
 				.done(function(result) {
@@ -311,7 +311,7 @@ kt.searchEdit = function(modelname, filter)
 		{
 			var data = ko.mapping.toJS(item);
 			var json = JSON.stringify(data);
-			if (verbose) console.log("POSTing to CREATE: " + json);
+			if (kt.verbose) console.log("POSTing to CREATE: " + json);
 			viewmodel.operations.push(function(next) {
 				$.ajax({type: "POST",url:modelApiBase,data:json, 
 					contentType:"application/json; charset=utf-8",dataType:"json"})
@@ -395,7 +395,7 @@ kt.read = function(modelname,id)
 	viewmodel.submitUpdate = function() {
 		var data = ko.mapping.toJS(viewmodel.item);
 		var json = JSON.stringify(data);
-		if (verbose) console.log("POSTing to UPDATE: " + json);
+		if (kt.verbose) console.log("POSTing to UPDATE: " + json);
 		$.ajax({type: "POST",url:modelApiBase+'/'+data._id,data:json, 
 				contentType:"application/json; charset=utf-8",dataType:"json"})
 			.done(function(result) {
@@ -409,7 +409,7 @@ kt.read = function(modelname,id)
 	}
 	viewmodel.submitDelete = function () {
 		var data = ko.mapping.toJS(viewmodel.item);
-		if (verbose) console.log("DELETING: " + data);
+		if (kt.verbose) console.log("DELETING: " + data);
 		$.ajax({type: "DELETE",url:modelApiBase+'/'+data._id})
 			.done(function(result) {
 				// redirect to... ???
@@ -431,7 +431,7 @@ function getMeanifyError(jqXHR)
 		// if the response isn't JSON, just return it as text
 		return jqXHR.responseText;
 	}
-	if (verbose) console.log(resp);	
+	if (kt.verbose) console.log(resp);	
 	if (resp.errors && resp.errors.description) return resp.errors.description.message;
 	else return jqXHR.responseText;
 }
@@ -461,7 +461,7 @@ function addCreateItem(viewmodel,modelApiBase,filter,modelname,doApplyBindings)
 			});
 		viewmodel.error = ko.observable(null);
 		viewmodel.submitCreate = function() { 
-			if (verbose) console.log("POSTing to CREATE: " + ko.mapping.toJSON(viewmodel.item));
+			if (kt.verbose) console.log("POSTing to CREATE: " + ko.mapping.toJSON(viewmodel.item));
 			$.ajax({type: "POST",url:modelApiBase,data:ko.mapping.toJSON(viewmodel.item),
 				contentType:"application/json; charset=utf-8",dataType:"json"})
 			.done(function(data) { 

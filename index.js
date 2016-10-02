@@ -9,7 +9,7 @@ module.exports = function(app,suppliedOptions) {
 	// load meanify
 	if (options.predicates)
 		options.meanify.filter = options.predicates;
-		
+
 	// disable transformation of the model name
 	options.meanify.pluralize = false;
 	options.meanify.lowercase = false;
@@ -23,8 +23,7 @@ module.exports = function(app,suppliedOptions) {
 	fs.readFile(fn, function(err, buffer) {
 		// replace our special strings
 		var js = buffer.toString();
-		js = js.split("{{verbose}}").join(options.verbose == true);
-		//console.log(js);
+
 		// minify if necessary
 		if (options.minify)
 			js = UglifyJS.minify(js, {fromString:true}).code;
