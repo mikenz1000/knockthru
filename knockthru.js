@@ -15,7 +15,6 @@
 	Use the model name that meanify is publishing on the endpoints (if the pluralize option is passed, add an s to the lowercase model name...)
 */
 var verbose = {{verbose}};
-var parseId = {{parseIdFunction}};
 
 // ensure we have jQuery
 if (!window.jQuery) throw new Error("jQuery must be included - add this to the html head section:\n"+
@@ -411,7 +410,6 @@ kt.read = function(modelname,id)
 		var modelApiBase = "{{meanifyPath}}" + modelname;
 		viewmodel.errors = ko.observableArray([]);
 		
-		//var id = parseId();
 		var target = kt.private.target[0];
 
 		viewmodel.error = ko.observable(null);

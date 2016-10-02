@@ -14,13 +14,6 @@ module.exports = function(options)
 		// the api base in meanify - this is the default value
 		meanifyPath: '/',
 		
-		// this is the function what will return the _id value from the URL or session or wherever it should be gotten from, in the browser.
-		// getUrlParameter is provided in the script automatically as a helper function to pull ?name=value from the url
-		parseIdFunction: "function() { \n"+
-            "return getUrlPathTail(); \n"+
-			//return getUrlParameter('_id'); \
-		"}\n",
-		
 		// this is a function returning a key-value dictionary (taking request parameter), or a static key-value dictionary, of the
 		// filters that will be applied to ALL datastore queries.  prevents url hackers from accessing other users' files etc
 		filter: null,	

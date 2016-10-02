@@ -22,7 +22,6 @@ module.exports = function(app,suppliedOptions) {
 		var js = buffer.toString();
 		js = js.split("{{verbose}}").join(options.verbose == true);
 		js = js.split("{{meanifyPath}}").join(options.meanifyPath);
-		js = js.split("{{parseIdFunction}}").join(options.parseIdFunction);
 		//console.log(js);
 		// minify if necessary
 		if (options.minify)
