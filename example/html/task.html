@@ -1,0 +1,40 @@
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/knockout/3.3.0/knockout-debug.js' ></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.js' ></script>
+    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+	<script src='/knockthru.js'></script>
+</head>
+<body>
+<div class="container" data-meanify-knockout-viewmodel-target='read,tasks/{getUrlParameter("_id")}'>
+
+    <h1>Task</h1>
+    <div data-bind='with: item' >
+        <div class="form-group">
+            <label for="descriptionInput">Description</label>        
+            <input type="text" class="form-control" id="descriptionInput" 
+                data-bind='textInput: description'>
+            </div>
+
+        <div class="checkbox">
+            <label for="doneInput">
+            <input type='checkbox' data-bind='checked: done' id="doneInput">Done</input>
+            </label>
+        </div>
+    </div>
+    <p>
+    <button class='btn btn-default' data-bind='enable: item.isDirty(), click:submitUpdate'>Save</button>
+    <button class='btn btn-default' data-bind='click: submitDelete'>Delete</button>
+    </p>
+    <span data-bind='if: error'><div class="alert alert-danger" data-bind='text: error'></div></span>
+
+    <a href='tasks.html'>Back to task list</a>
+      
+</div>
+</body>	
+</html>
+
