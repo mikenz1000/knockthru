@@ -35,7 +35,5 @@ module.exports = function(app,suppliedOptions) {
 			res.set('Content-Type', 'application/javascript');
 			res.send(js);
 		});
-	});
-	
-	
+	});	
 }
