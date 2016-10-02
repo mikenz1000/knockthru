@@ -6,8 +6,10 @@
   "dependencies": {
     "body-parser": "^1.9.3",
     "debug": "^2.1.0",
-    "pluralize": "^1.0.3"
-  },
+    "pluralize": "^1.0.3",
+    "express": "^4.10.2",
+    "mongoose" : "~4.1.7"
+ },
   "repository": {
     "type": "git",
     "url": "https://github.com/artzstudio/meanify"
@@ -35,8 +37,6 @@
   },
   "homepage": "https://github.com/artzstudio/meanify",
   "devDependencies": {
-    "express": "^4.10.2",
-    "mongoose": "^3.8.19",
     "request": "^2.48.0",
     "tap": "^0.4.13"
   }

@@ -5,8 +5,7 @@ as well as enforce certain fields to be set when data is created/updated.
 
 This is mandatory in order to prevent url rewriters from being able to read or change ANY data in the database.
 
-My pull requests on meanify were ignored by the developer so I am just using a fork-copy with the modiciations that I need.  
-This is within my rights as per the license agreement, which I dutifully reproduce below.
+My pull requests on meanify were ignored by the developer so I am just using a fork-copy with the modifications that I need. This is within my rights as per the license agreement, which I dutifully reproduce below.
 
 # license
 

@@ -1,29 +1,39 @@
 <html>
 <head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-    
+	<link rel="stylesheet" media="all" href="mocha.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/knockout/3.3.0/knockout-debug.js' ></script>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.js' ></script>
-
-	<script src='/knockthru.js'></script>
+   
+   
 </head>
 <body>
-<div class="container">
-
+	<div id="mocha"><p><a href=".">Index</a></p></div>
+	<div id="messages"></div>
+	<div id="fixtures"></div>
+	<script src="mocha.js"></script>
+	
+	
+	<script src='http://code.jquery.com/jquery-1.11.0.min.js'></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/knockout/3.3.0/knockout-min.js' ></script>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js' ></script>
+	
+	<script src="http://localhost:3000/knockthru.js"></script>
+	<script>mocha.setup('bdd')</script>
+	<script src="test.js"></script>
+	<script>mocha.run();</script>
+	
+	
     <h1>Tasks</h1>
     
     <table class='table' >
-        <tbody data-knockthru='search,tasks', data-bind='foreach: items'>
+        <tbody data-knockthru='tasks,search' data-bind='foreach: items' id='search'>
             <tr>
                 <td width='4em'><input type='checkbox' data-bind='checked: done'></td>
                 <td><span contenteditable='true' data-bind='content: description, valueUpdate: keyup' ></span></td>
                 <td><button class='form-control btn-xs'><span class='glyphicon glyphicon-remove' data-bind='click:$parent.delete'></button></td>
             </tr>
         </tbody>     
-        <tfoot data-knockthru='create,tasks' data-bind='with: item'>
+        <tfoot data-knockthru='tasks,create' data-bind='with: item' id='create'>
             <tr>
                 <td></td>
                 <td><input type="text" class="form-control" data-bind='textInput: description, onEnterKey: (description ? $parent.addToSearch : null)' placeholder='Enter Task Description' ></td>
@@ -32,16 +42,12 @@
         </tfoot>    
     </table>
     
-    <div data-knockthru='search,tasks'>    <!-- this is a second target bound to the same viewmodel as above -->
+    <div data-knockthru='tasks,search'>    <!-- this is a second target bound to the same viewmodel as above -->
         <button class='form-control' data-bind='click: submit, enable: isDirty'>Save</button><br/>
         <button class='form-control' data-bind='click: refresh'>Refresh</button><br/>
         
         <span data-bind='if: errors().length'><div class="alert alert-danger" data-bind='text: errors().join("<br/>")'></div></span>
   
     </div>
- 
-    <a href='/'>Back to main page</a>
-</div>
-</body>	
+</body>
 </html>
-

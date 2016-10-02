@@ -2,9 +2,9 @@
 
 	Usage 
 	
-	<script src='/meanify-knockout.js'></script>
+	<script src='/knockthru.js'></script>
 	...
-	<div data-meanify-knockout-viewmodel-target='<modelname>,<search/create/update>[,option:readonly]'>
+	<div data-knockthru='<modelname>,<search/create/update>[,option:readonly]'>
 		<p data-bind='foreach: items'>
 		...
 		</p>
@@ -104,22 +104,22 @@ function getUrlPathTail() {
 var viewmodels = {};
 
 // read,modelname/{scriptvar} - read single record
-// searchedit,modelname[?fields] - search for records
-// search,modelname[?fields] - search for records
+// searchedit,modelname[?field1=value1,...] - search for records
+// search,modelname[?field1=value1,...] - search for records
 // create,modelname/{scriptvar} - write single record
 var re = /([^,]+),([^?/]+)([/?])?(.*)?/;
 
 // find all the viewmodel targets
 $(document).ready(function() {
-$("[data-meanify-knockout-viewmodel-target]").each(function() {
+$("[data-knockthru]").each(function() {
 	var target = $(this);
     
-	var params = target.attr("data-meanify-knockout-viewmodel-target").match(re);
+	var params = target.attr("data-knockthru").match(re);
     var action = params[1];
 	var modelname = params[2];
     var operatorAfterModelName = params[3];
     var afterOperator = params[4];
-	var readonly = action == 'search';
+	var readonly = action == 'searchreadonly';
 	if (action == 'searchreadonly') action = 'search';
 	//params.some(function(p) { p === "option:readonly"});
 	var viewmodel = {};
@@ -272,7 +272,7 @@ $("[data-meanify-knockout-viewmodel-target]").each(function() {
                     });
             }
 			$.get(url, function(data, status, xhr, dataType) {
-                if (!(xhr.getResponseHeader('content-type') === 'application/json')) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure the settings path in meanify and meanifyPath in meanify-knockout match, and that nothing else could be handling this url as well.");
+                if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure the settings path in meanify and meanifyPath in knockthru match, and that nothing else could be handling this url as well.");
 				ko.mapping.fromJS(data, mappingOptions, viewmodel.items);
 				viewmodel.deleted([]);
 				viewmodel.created([]);
@@ -300,7 +300,7 @@ $("[data-meanify-knockout-viewmodel-target]").each(function() {
 		//var id = parseId();
 		var code = afterOperator.substring(1,afterOperator.length-1);
 		var id = eval(code);
-		console.log('Evaluated ' + code + ' as ' + value);
+		console.log('Evaluated ' + code + ' as ' + id);
 		
 		viewmodel.error = ko.observable(null);
 		var firstcall = true;
@@ -341,7 +341,7 @@ $("[data-meanify-knockout-viewmodel-target]").each(function() {
 		
 		viewmodel.refresh();
 	}
-	else throw new Error("Don't know how to handle action: " + target.attr("data-meanify-knockout-viewmodel-target"));
+	else throw new Error("Don't know how to handle action: " + target.attr("data-knockthru"));
 	
 	
 	
@@ -402,7 +402,7 @@ function addCreateItem(viewmodel,modelApiBase,operatorAfterModelName,afterOperat
 				ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
 				
 				// and if we detect a search on the same form, refresh it automatically
-				var search = $("[data-meanify-knockout-viewmodel-target^='search,"+modelname+"']");
+				var search = $("[data-knockthru^='search,"+modelname+"']");
 				if (search.length > 0) 
                 {
                     search = ko.dataFor(search[0]);
@@ -414,8 +414,8 @@ function addCreateItem(viewmodel,modelApiBase,operatorAfterModelName,afterOperat
 			});
 		}
 		viewmodel.addToSearch = function() { 
-			var search = $("[data-meanify-knockout-viewmodel-target^='search,"+modelname+"']");
-			if (search.length == 0) throw new Error("Could not find SEARCH viewmodel (an element with attribute data-meanify-knockout-viewmodel-target='"+modelname+",search')");
+			var search = $("[data-knockthru^='search,"+modelname+"']");
+			if (search.length == 0) throw new Error("Could not find SEARCH viewmodel (an element with attribute data-knockthru='"+modelname+",search')");
 			search = ko.dataFor(search[0]);
 			var newItem = ko.mapping.fromJS(ko.mapping.toJS(viewmodel.item),mappingOptions);
 			search.items.push(newItem);

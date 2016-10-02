@@ -1,5 +1,5 @@
 {
-  "name": "meanify-knockout",
+  "name": "knockthru",
   "version": "0.0.1",
   "description": "(In development - check back soon)",
   "main": "index.js",
@@ -22,11 +22,14 @@
   },
   "homepage": "https://github.com/mikenz1976/crudbind#readme",
   "devDependencies": {
-    "mocha": "~2.3.2",
-    "istanbul": "~0.3.20"
   },
   "dependencies": {
-    // "meanify": "~0.1.6",  I use meanify-fork instead
-    "uglify-js": "~2.4.24"
+    "uglify-js": "~2.4.24",
+    "body-parser": "^1.9.3",
+    "debug": "^2.1.0",
+    "pluralize": "^1.0.3",
+    "express": "^4.10.2",
+    "mongoose" : "~4.1.7"
+
   }
 }

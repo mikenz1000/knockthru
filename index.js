@@ -6,9 +6,10 @@ module.exports = function(app,suppliedOptions) {
 	// process options and defaults
 	var options = require('./options')(suppliedOptions);
 		
+	// load meanify
 	var meanify = require('./meanify-fork/meanify.js')({
 		pluralize: true,
-		verbose:true
+		verbose: true
 	});
 	app.use(meanify());
 
@@ -26,7 +27,7 @@ module.exports = function(app,suppliedOptions) {
 			js = UglifyJS.minify(js, {fromString:true}).code;
 			
 		// and serve
-		if (options.verbose) console.log('Serving meanify-knockout javascript at ' + options.jsurl);
+		if (options.verbose) console.log('Serving knockthru javascript at ' + options.jsurl);
 		app.get(options.jsurl, function(req,res) {
 			res.set('Content-Type', 'application/javascript');
 			res.send(js);
