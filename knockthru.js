@@ -183,18 +183,18 @@ var firstcall = true;
 
 // the kt.getSearch function allows additional bindings to the same search viewmodel that was defined earlier in the html page
 // it's also used by the addToSearch function to refresh the search viewmodel when you use the create model to submit a new one
-var searches = [];
+kt.private.searches = [];
 kt.getSearch = function(index)
 {
 	if (!index) index = 0;
-	kt.private.applyBindings(searches[index],kt.private.target[0]);
+	kt.private.applyBindings(kt.private.searches[index],kt.private.target[0]);
 }
 
 // a read-only search of the data
 kt.search = function(modelname, filter)
 {
 	var viewmodel = {};
-	searches.push(viewmodel);
+	kt.private.searches.push(viewmodel);
 	var modelApiBase = basePath + modelname;
 	viewmodel.errors = ko.observableArray([]);
 
@@ -228,7 +228,7 @@ kt.search = function(modelname, filter)
 kt.searchEdit = function(modelname, filter)
 {
 	var viewmodel = {};
-	searches.push(viewmodel);
+	kt.private.searches.push(viewmodel);
 	var modelApiBase = basePath + modelname;
 	viewmodel.errors = ko.observableArray([]);
 	viewmodel.items = ko.mapping.fromJS([]);
@@ -480,13 +480,17 @@ function addCreateItem(viewmodel,modelApiBase,filter,modelname,doApplyBindings)
 				viewmodel.error(jqXHR.responseText); 
 			});
 		}
-		viewmodel.addToSearch = function() {
-			var search = kt.getSearch(0);
-			if (!search) throw new Error("Could not find SEARCH viewmodel");
-			var newItem = ko.mapping.fromJS(ko.mapping.toJS(viewmodel.item),mappingOptions);
-			search.items.push(newItem);
-			search.created.push(newItem);
-			// and reset the input form
-			ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);			
+		viewmodel.addToSearch = function(index) {			
+			if (!index) index = 0;
+			return function()
+			{
+				var search = kt.private.searches[index];
+				if (!search) throw new Error("Could not find SEARCH viewmodel");
+				var newItem = ko.mapping.fromJS(ko.mapping.toJS(viewmodel.item),mappingOptions);
+				search.items.push(newItem);
+				search.created.push(newItem);
+				// and reset the input form
+				ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
+			}			
 		};
 }

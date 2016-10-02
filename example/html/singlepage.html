@@ -26,8 +26,8 @@
         <tfoot data-knockthru='kt.create("Task")' data-bind='with: item'>
             <tr>
                 <td></td>
-                <td><input type="text" class="form-control" data-bind='textInput: description, onEnterKey: (description ? $parent.addToSearch : null)' placeholder='Enter Task Description' ></td>
-                <td width='20em'><button class='form-control' data-bind='enable: description, click:$parent.addToSearch'>Add</input></td>
+                <td><input type="text" class="form-control" data-bind='textInput: description, onEnterKey: (description ? $parent.addToSearch(0) : null)' placeholder='Enter Task Description' ></td>
+                <td width='20em'><button class='form-control' data-bind='enable: description, click:$parent.addToSearch(0)'>Add</input></td>
             </tr>            
         </tfoot>    
     </table>
