@@ -16,6 +16,11 @@
 */
 var verbose = {{verbose}};
 
+// find the path to this script, which is also the base path for the meanify endpoints
+var scripts = document.getElementsByTagName("script");
+var script = scripts[scripts.length-1];
+var basePath = script.src.replace('knockthru.js','');
+
 // ensure we have jQuery
 if (!window.jQuery) throw new Error("jQuery must be included - add this to the html head section:\n"+
 "	<script src='http://code.jquery.com/jquery-1.11.0.min.js'></script>");
@@ -195,18 +200,9 @@ var firstcall = true;
 		
 kt.search = function(modelname, filter)
 {
-	
-	//var params = target.attr("data-knockthru").match(re);
-    // var action = params[1];
-	// var modelname = params[2];
-    // var operatorAfterModelName = params[3];
-    // var afterOperator = params[4];
-	// var readonly = action == 'searchreadonly';
-	// if (action == 'searchreadonly') action = 'search';
-	// //params.some(function(p) { p === "option:readonly"});
 	kt.private.checkCache(modelname, "search", function() { 
 		var viewmodel = {};
-		var modelApiBase = "{{meanifyPath}}" + modelname;
+		var modelApiBase = basePath + modelname;
 		viewmodel.errors = ko.observableArray([]);
 
 		viewmodel.items = ko.mapping.fromJS([]);
@@ -253,7 +249,7 @@ kt.searchEdit = function(modelname, filter)
 	kt.private.checkCache(modelname, "searchEdit", function() { 
 		console.log('searchEdit creator');
 		var viewmodel = {};
-		var modelApiBase = "{{meanifyPath}}" + modelname;
+		var modelApiBase = basePath + modelname;
 		viewmodel.errors = ko.observableArray([]);
 		viewmodel.items = ko.mapping.fromJS([]);
 		
@@ -371,7 +367,7 @@ kt.searchEdit = function(modelname, filter)
 					url += encodeURIComponent(f) + '=' + encodeURIComponent(filter[f]);
 			}
 			$.get(url, function(data, status, xhr, dataType) {
-				if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure the settings path in meanify and meanifyPath in knockthru match, and that nothing else could be handling this url as well.");
+				if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure that the meanify endpoint is what knockthru expects (only possible if you mess about with the options), and that nothing else could be handling this url as well.");
 				ko.mapping.fromJS(data, mappingOptions, viewmodel.items);
 				viewmodel.deleted([]);
 				viewmodel.created([]);
@@ -392,7 +388,7 @@ kt.create = function(modelname,predicate)
 {	
 	kt.private.checkCache(modelname, "create", function() { 
 		var viewmodel = {};
-		var modelApiBase = "{{meanifyPath}}" + modelname;
+		var modelApiBase = basePath + modelname;
 		viewmodel.errors = ko.observableArray([]);
 
 		// CREATE
@@ -407,7 +403,7 @@ kt.read = function(modelname,id)
 {	
 	kt.private.checkCache(modelname, "read", function() { 
 		var viewmodel = {};
-		var modelApiBase = "{{meanifyPath}}" + modelname;
+		var modelApiBase = basePath + modelname;
 		viewmodel.errors = ko.observableArray([]);
 		
 		var target = kt.private.target[0];

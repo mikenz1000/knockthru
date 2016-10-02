@@ -7,12 +7,15 @@ module.exports = function(app,suppliedOptions) {
 	var options = require('./options')(suppliedOptions);
 		
 	// load meanify
+	if (options.predicates)
+		options.meanify.filter = options.predicates;
+		
 	// disable transformation of the model name
-	var meanify = require('./meanify-fork/meanify.js')({
-		pluralize: false,
-		lowercase: false,
-		verbose: true
-	});
+	options.meanify.pluralize = false;
+	options.meanify.lowercase = false;
+	options.meanify.path = options.basePath;
+
+	var meanify = require('./meanify-fork/meanify.js')(options.meanify);
 	app.use(meanify());
 
 	// get the javascript
@@ -21,15 +24,15 @@ module.exports = function(app,suppliedOptions) {
 		// replace our special strings
 		var js = buffer.toString();
 		js = js.split("{{verbose}}").join(options.verbose == true);
-		js = js.split("{{meanifyPath}}").join(options.meanifyPath);
 		//console.log(js);
 		// minify if necessary
 		if (options.minify)
 			js = UglifyJS.minify(js, {fromString:true}).code;
 			
 		// and serve
-		if (options.verbose) console.log('Serving knockthru javascript at ' + options.jsurl);
-		app.get(options.jsurl, function(req,res) {
+		var url = options.basePath + options.jsname;
+		if (options.verbose) console.log('Serving knockthru javascript at ' + url);
+		app.get(url, function(req,res) {
 			res.set('Content-Type', 'application/javascript');
 			res.send(js);
 		});
