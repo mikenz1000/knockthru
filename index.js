@@ -7,8 +7,10 @@ module.exports = function(app,suppliedOptions) {
 	var options = require('./options')(suppliedOptions);
 		
 	// load meanify
+	// disable transformation of the model name
 	var meanify = require('./meanify-fork/meanify.js')({
-		pluralize: true,
+		pluralize: false,
+		lowercase: false,
 		verbose: true
 	});
 	app.use(meanify());

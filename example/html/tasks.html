@@ -16,7 +16,7 @@
     <h1>Tasks</h1>
     
     <table class='table' >
-        <tbody data-knockthru='kt.search("tasks")', data-bind='foreach: items'>
+        <tbody data-knockthru='kt.search("Task")', data-bind='foreach: items'>
             <tr>
                 <td width='4em'>
                     <input type='checkbox' disabled=disabled data-bind='checked: done'>
@@ -27,7 +27,7 @@
                 <!--<td><button class='form-control btn-xs'><span class='glyphicon glyphicon-remove' data-bind='click:$parent.delete'></button></td>-->
             </tr>
         </tbody>     
-        <tfoot data-knockthru='kt.create("tasks")' data-bind='with: item'>
+        <tfoot data-knockthru='kt.create("Task")' data-bind='with: item'>
             <tr>
                 <td></td>
                 <td><input type="text" class="form-control" data-bind='textInput: description, onEnterKey: (description ? $parent.submitCreate : null)' placeholder='Enter Task Description' ></td>
@@ -36,7 +36,7 @@
         </tfoot>    
     </table>
     
-    <div data-knockthru='kt.search("tasks")'>    <!-- this is a second target bound to the same viewmodel as above -->
+    <div data-knockthru='kt.search("Task")'>    <!-- this is a second target bound to the same viewmodel as above -->
         <button class='form-control' data-bind='click: refresh'>Refresh</button><br/>
     </div>
      

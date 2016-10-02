@@ -16,14 +16,14 @@
     <h1>Tasks</h1>
     
     <table class='table' >
-        <tbody data-knockthru='kt.searchEdit("tasks")' data-bind='foreach: items' id='se1'>
+        <tbody data-knockthru='kt.searchEdit("Task")' data-bind='foreach: items' id='se1'>
             <tr>
                 <td width='4em'><input type='checkbox' data-bind='checked: done'></td>
                 <td><span contenteditable='true' data-bind='content: description, valueUpdate: keyup' ></span></td>
                 <td><button class='form-control btn-xs'><span class='glyphicon glyphicon-remove' data-bind='click:$parent.delete'></button></td>
             </tr>
         </tbody>     
-        <tfoot data-knockthru='kt.create("tasks")' data-bind='with: item' id='CRE'>
+        <tfoot data-knockthru='kt.create("Task")' data-bind='with: item' id='CRE'>
             <tr>
                 <td></td>
                 <td><input type="text" class="form-control" data-bind='textInput: description, onEnterKey: (description ? $parent.addToSearch : null)' placeholder='Enter Task Description' ></td>
@@ -32,7 +32,7 @@
         </tfoot>    
     </table>
     
-    <div data-knockthru='kt.searchEdit("tasks")'  id='se2'>    <!-- this is a second target bound to the same viewmodel as above -->
+    <div data-knockthru='kt.searchEdit("Task")'  id='se2'>    <!-- this is a second target bound to the same viewmodel as above -->
         <button class='form-control' data-bind='click: submit, enable: isDirty'>Save</button><br/>
         <button class='form-control' data-bind='click: refresh'>Refresh</button><br/>
         
