@@ -23,9 +23,11 @@ Available viewmodels are
 
 Generates a viewmodel with the following content
 
-element |
---------|---------------------------------------------------------------------------------------
-items   | an observable array of the result of the search
-errors  | observable list of strings detailing any errors / validation errors from the server
-submit  | handler to save the changes
-refresh | re-run the query
+|element ||
+|--------|---------------------------------------------------------------------------------------|
+|items   | an observable array of the result of the search                                       |
+|errors  | observable list of strings detailing any errors / validation errors from the server   |
+|submit  | handler to save the changes                                                           |
+|refresh | event handler to re-run the query                                                     |
+|--------|---------------------------------------------------------------------------------------|
+
