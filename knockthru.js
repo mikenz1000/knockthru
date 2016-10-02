@@ -212,7 +212,7 @@ kt.search = function(modelname, filter)
 
 		viewmodel.items = ko.mapping.fromJS([]);
 		var target = kt.private.target[0];
-		viewmodel.refresh = function(next) { 
+		viewmodel.refresh = function() { 
 			var url = modelApiBase;
 			if (filter)
 			{
@@ -228,7 +228,7 @@ kt.search = function(modelname, filter)
 				viewmodel.errors([]);
 				if (firstcall) kt.private.applyBindings(viewmodel,target);
 				firstcall = false;
-				if (next) next();
+				//if (next) next();
 			});
 		};
 		viewmodel.refresh();
@@ -363,7 +363,7 @@ kt.searchEdit = function(modelname, filter)
 		
 		var firstcall = true;
 		var target = kt.private.target[0];
-		viewmodel.refresh = function(next) { 
+		viewmodel.refresh = function() { 
 			var url = modelApiBase;
 			if (filter)
 			{
@@ -379,7 +379,7 @@ kt.searchEdit = function(modelname, filter)
 				viewmodel.errors([]);
 				if (firstcall) kt.private.applyBindings(viewmodel,target);
 				firstcall = false;
-				if (next) next();
+				
 			});
 		};
 		viewmodel.refresh();
