@@ -514,10 +514,11 @@ function addCreateItem(viewmodel,modelApiBase,filter,modelname,doApplyBindings)
 				viewmodel.error(jqXHR.responseText); 
 			});
 		}
-		viewmodel.addToSearch = function() { 
-			var search = $("[data-knockthru^='search,"+modelname+"']");
-			if (search.length == 0) throw new Error("Could not find SEARCH viewmodel (an element with attribute data-knockthru='"+modelname+",search')");
-			search = ko.dataFor(search[0]);
+		viewmodel.addToSearch = function() {
+			var viewmodelKey = modelname + ',searchEdit'; // used to uniquely identify the viewmodel
+
+			var search = viewmodels[viewmodelKey];
+			if (!search) throw new Error("Could not find SEARCH viewmodel (an element with attribute data-knockthru='"+modelname+",search')");
 			var newItem = ko.mapping.fromJS(ko.mapping.toJS(viewmodel.item),mappingOptions);
 			search.items.push(newItem);
 			search.created.push(newItem);
