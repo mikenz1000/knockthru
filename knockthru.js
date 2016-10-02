@@ -81,7 +81,7 @@ if (!ko.bindingHandlers.content)
 		}
 	};
 
-// define an onEnterKey binding
+// define an onEnterKey binding 
 if (!ko.bindingHandlers.onEnterKey) 
 	ko.bindingHandlers.onEnterKey = {
 		init: function (element, valueAccessor, allBindings, viewModel) {
@@ -174,280 +174,252 @@ $("[data-knockthru]").each(function() {
 
 	// we expect the code to be a function that sets up a viewmodel for the target
 	// like kt.search()
+	// alternatively if there is a return value then we attempt to bind it (e.g. if we pull the viewmodel from somewhere else)
     eval(code);
 });
 });
 
-// re-use the same viewmodel - this allows multiple knockout bindings to the same viewmodel
-// TODO: consider instead having a special knockthru function that just grabs the same viewmodel
-// as before.  e.g. data-knockthru='kt.same()'
-kt.private.checkCache = function(modelname, action, creator)
-{
-		
-	var viewmodelKey = modelname + ',' + action; // used to uniquely identify the viewmodel
-	console.log('checkCache ' + viewmodelKey );
-	if (viewmodels[viewmodelKey])
-	{
-		// already done the viewmodel for this model and action - recycle it for the additional DOM element
-		console.log('binding from cache ' + viewmodelKey + ' to ' + getDomPath(kt.private.target[0]) );
-		ko.applyBindings(viewmodels[viewmodelKey], kt.private.target[0]);
-		return;
-	}
-	var viewmodel = creator();
-	viewmodels[viewmodelKey] = viewmodel;	
-}
 var firstcall = true;
-		
+
+// the kt.getSearch function allows additional bindings to the same search viewmodel that was defined earlier in the html page
+// it's also used by the addToSearch function to refresh the search viewmodel when you use the create model to submit a new one
+var searches = [];
+kt.getSearch = function(index)
+{
+	if (!index) index = 0;
+	kt.private.applyBindings(searches[index],kt.private.target[0]);
+}
+
+// a read-only search of the data
 kt.search = function(modelname, filter)
 {
-	kt.private.checkCache(modelname, "search", function() { 
-		var viewmodel = {};
-		var modelApiBase = basePath + modelname;
-		viewmodel.errors = ko.observableArray([]);
+	var viewmodel = {};
+	searches.push(viewmodel);
+	var modelApiBase = basePath + modelname;
+	viewmodel.errors = ko.observableArray([]);
 
-		viewmodel.items = ko.mapping.fromJS([]);
-		var target = kt.private.target[0];
-		viewmodel.refresh = function() { 
-			var url = modelApiBase;
-			if (filter)
-			{
-				url = url + '?';
-				for (var f in filter)
-					url += encodeURIComponent(f) + '=' + encodeURIComponent(filter[f]);
-			}
-			$.get(url, function(data, status, xhr, dataType) {
-				if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure the settings path in meanify and meanifyPath in knockthru match, and that nothing else could be handling this url as well.");
-				ko.mapping.fromJS(data, mappingOptions, viewmodel.items);
-				//viewmodel.deleted([]);
-				//viewmodel.created([]);
-				viewmodel.errors([]);
-				if (firstcall) kt.private.applyBindings(viewmodel,target);
-				firstcall = false;
-				//if (next) next();
-			});
-		};
-		viewmodel.refresh();
-		viewmodel.createItem = {};
-		addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
-		return viewmodel;
-	});
+	viewmodel.items = ko.mapping.fromJS([]);
+	var target = kt.private.target[0];
+	viewmodel.refresh = function() { 
+		var url = modelApiBase;
+		if (filter)
+		{
+			url = url + '?';
+			for (var f in filter)
+				url += encodeURIComponent(f) + '=' + encodeURIComponent(filter[f]);
+		}
+		$.get(url, function(data, status, xhr, dataType) {
+			if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure the settings path in meanify and meanifyPath in knockthru match, and that nothing else could be handling this url as well.");
+			ko.mapping.fromJS(data, mappingOptions, viewmodel.items);
+			//viewmodel.deleted([]);
+			//viewmodel.created([]);
+			viewmodel.errors([]);
+			if (firstcall) kt.private.applyBindings(viewmodel,target);
+			firstcall = false;
+			//if (next) next();
+		});
+	};
+	viewmodel.refresh();
+	viewmodel.createItem = {};
+	addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
 };
 
 
 kt.searchEdit = function(modelname, filter)
 {
-	console.log('searchEdit entry');
+	var viewmodel = {};
+	searches.push(viewmodel);
+	var modelApiBase = basePath + modelname;
+	viewmodel.errors = ko.observableArray([]);
+	viewmodel.items = ko.mapping.fromJS([]);
 	
-	//var params = target.attr("data-knockthru").match(re);
-    // var action = params[1];
-	// var modelname = params[2];
-    // var operatorAfterModelName = params[3];
-    // var afterOperator = params[4];
-	// var readonly = action == 'searchreadonly';
-	// if (action == 'searchreadonly') action = 'search';
-	// //params.some(function(p) { p === "option:readonly"});
-	kt.private.checkCache(modelname, "searchEdit", function() { 
-		console.log('searchEdit creator');
-		var viewmodel = {};
-		var modelApiBase = basePath + modelname;
-		viewmodel.errors = ko.observableArray([]);
-		viewmodel.items = ko.mapping.fromJS([]);
-		
-		viewmodel.deleted = ko.observableArray([]);
-		viewmodel.created = ko.observableArray([]);
-		viewmodel.delete = function(data) {
-			if (viewmodel.created.indexOf(data) >= 0)
-			{
-				// unsaved so remove from created list
-				viewmodel.created.remove(data);
-			}
-			else
-			{
-				viewmodel.deleted.push(data);	
-			}
-			viewmodel.items.remove(data);
+	viewmodel.deleted = ko.observableArray([]);
+	viewmodel.created = ko.observableArray([]);
+	viewmodel.delete = function(data) {
+		if (viewmodel.created.indexOf(data) >= 0)
+		{
+			// unsaved so remove from created list
+			viewmodel.created.remove(data);
 		}
-		viewmodel.updated = ko.computed(function () { 
-			return ko.utils.arrayFilter(viewmodel.items(), function (i) { 
-				return i.isDirty(); 
-			});
+		else
+		{
+			viewmodel.deleted.push(data);	
+		}
+		viewmodel.items.remove(data);
+	}
+	viewmodel.updated = ko.computed(function () { 
+		return ko.utils.arrayFilter(viewmodel.items(), function (i) { 
+			return i.isDirty(); 
 		});
-		
-		// outstanding ajax operations are here - each is a function to be called that takes a callback as a parameter which will 
-		// be called when done (pass or fail) and schedule the next.  It's observable so you can have a UI element bound to operations().length or something
-		viewmodel.operations = ko.observableArray([]);
-		viewmodel.startOperations = function() {
-			if (viewmodel.operations().length > 0)
-			{
-				var o = viewmodel.operations.shift();
-				o(viewmodel.startOperations); // will trigger another one if one remains when done
-			}
-		};
-		viewmodel.submit = function() {
-			viewmodel.errors([]);
-			viewmodel.updated().forEach(function(item)
-			{
-				var data = ko.mapping.toJS(item);
-				var json = JSON.stringify(data);
-				if (verbose) console.log("POSTing to UPDATE: " + json);
-				viewmodel.operations.push(function(next) {
-					$.ajax({type: "POST",url:modelApiBase+'/'+data._id,data:json, 
-						contentType:"application/json; charset=utf-8",dataType:"json"})
-					.done(function(result) {
-						// clear dirty flag
-						item.isDirty(false);
-						next();
-					})
-					.fail(function(jqXHR) { 
-						// add error
-						viewmodel.errors.push(getMeanifyError(jqXHR));							
-						next();
-					}) 
-				});
-				// launch operations
-				viewmodel.startOperations();
-			});
-			viewmodel.deleted().forEach(function(item)
-			{
-				var data = ko.mapping.toJS(item);
-				if (verbose) console.log("DELETING: " + data);
-				viewmodel.operations.push(function(next) {
-					$.ajax({type: "DELETE",url:modelApiBase+'/'+data._id})
-					.done(function(result) {
-						// remove
-						viewmodel.deleted.remove(item);
-						next();
-					})
-					.fail(function(jqXHR) { 
-						// add error
-						viewmodel.errors.push(getMeanifyError(jqXHR));							
-						next();
-					}) 
-				});
-				// launch operations
-				viewmodel.startOperations();
-			});
-			viewmodel.created().forEach(function(item)
-			{
-				var data = ko.mapping.toJS(item);
-				var json = JSON.stringify(data);
-				if (verbose) console.log("POSTing to CREATE: " + json);
-				viewmodel.operations.push(function(next) {
-					$.ajax({type: "POST",url:modelApiBase,data:json, 
-						contentType:"application/json; charset=utf-8",dataType:"json"})
-					.done(function(result) {
-						// clear dirty flag
-						viewmodel.created.remove(item);
-						item._id = result._id;
-						next();
-					})
-					.fail(function(jqXHR) { 
-						viewmodel.errors.push(getMeanifyError(jqXHR));							
-						next();
-					});
-				});
-				// launch operations
-				viewmodel.startOperations();
-			});
-		} // submit;
-		viewmodel.isDirty = ko.computed(function() {
-			return (viewmodel.created().length +
-					viewmodel.updated().length +
-					viewmodel.deleted().length) > 0;
-		});
-		
-		var firstcall = true;
-		var target = kt.private.target[0];
-		viewmodel.refresh = function() { 
-			var url = modelApiBase;
-			if (filter)
-			{
-				url = url + '?';
-				for (var f in filter)
-					url += encodeURIComponent(f) + '=' + encodeURIComponent(filter[f]);
-			}
-			$.get(url, function(data, status, xhr, dataType) {
-				if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure that the meanify endpoint is what knockthru expects (only possible if you mess about with the options), and that nothing else could be handling this url as well.");
-				ko.mapping.fromJS(data, mappingOptions, viewmodel.items);
-				viewmodel.deleted([]);
-				viewmodel.created([]);
-				viewmodel.errors([]);
-				if (firstcall) kt.private.applyBindings(viewmodel,target);
-				firstcall = false;
-				
-			});
-		};
-		viewmodel.refresh();
-		viewmodel.createItem = {};
-		addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
-		return viewmodel;
 	});
+	
+	// outstanding ajax operations are here - each is a function to be called that takes a callback as a parameter which will 
+	// be called when done (pass or fail) and schedule the next.  It's observable so you can have a UI element bound to operations().length or something
+	viewmodel.operations = ko.observableArray([]);
+	viewmodel.startOperations = function() {
+		if (viewmodel.operations().length > 0)
+		{
+			var o = viewmodel.operations.shift();
+			o(viewmodel.startOperations); // will trigger another one if one remains when done
+		}
+	};
+	viewmodel.submit = function() {
+		viewmodel.errors([]);
+		viewmodel.updated().forEach(function(item)
+		{
+			var data = ko.mapping.toJS(item);
+			var json = JSON.stringify(data);
+			if (verbose) console.log("POSTing to UPDATE: " + json);
+			viewmodel.operations.push(function(next) {
+				$.ajax({type: "POST",url:modelApiBase+'/'+data._id,data:json, 
+					contentType:"application/json; charset=utf-8",dataType:"json"})
+				.done(function(result) {
+					// clear dirty flag
+					item.isDirty(false);
+					next();
+				})
+				.fail(function(jqXHR) { 
+					// add error
+					viewmodel.errors.push(getMeanifyError(jqXHR));							
+					next();
+				}) 
+			});
+			// launch operations
+			viewmodel.startOperations();
+		});
+		viewmodel.deleted().forEach(function(item)
+		{
+			var data = ko.mapping.toJS(item);
+			if (verbose) console.log("DELETING: " + data);
+			viewmodel.operations.push(function(next) {
+				$.ajax({type: "DELETE",url:modelApiBase+'/'+data._id})
+				.done(function(result) {
+					// remove
+					viewmodel.deleted.remove(item);
+					next();
+				})
+				.fail(function(jqXHR) { 
+					// add error
+					viewmodel.errors.push(getMeanifyError(jqXHR));							
+					next();
+				}) 
+			});
+			// launch operations
+			viewmodel.startOperations();
+		});
+		viewmodel.created().forEach(function(item)
+		{
+			var data = ko.mapping.toJS(item);
+			var json = JSON.stringify(data);
+			if (verbose) console.log("POSTing to CREATE: " + json);
+			viewmodel.operations.push(function(next) {
+				$.ajax({type: "POST",url:modelApiBase,data:json, 
+					contentType:"application/json; charset=utf-8",dataType:"json"})
+				.done(function(result) {
+					// clear dirty flag
+					viewmodel.created.remove(item);
+					item._id = result._id;
+					next();
+				})
+				.fail(function(jqXHR) { 
+					viewmodel.errors.push(getMeanifyError(jqXHR));							
+					next();
+				});
+			});
+			// launch operations
+			viewmodel.startOperations();
+		});
+	} // submit;
+	viewmodel.isDirty = ko.computed(function() {
+		return (viewmodel.created().length +
+				viewmodel.updated().length +
+				viewmodel.deleted().length) > 0;
+	});
+	
+	var firstcall = true;
+	var target = kt.private.target[0];
+	viewmodel.refresh = function() { 
+		var url = modelApiBase;
+		if (filter)
+		{
+			url = url + '?';
+			for (var f in filter)
+				url += encodeURIComponent(f) + '=' + encodeURIComponent(filter[f]);
+		}
+		$.get(url, function(data, status, xhr, dataType) {
+			if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure that the meanify endpoint is what knockthru expects (only possible if you mess about with the options), and that nothing else could be handling this url as well.");
+			ko.mapping.fromJS(data, mappingOptions, viewmodel.items);
+			viewmodel.deleted([]);
+			viewmodel.created([]);
+			viewmodel.errors([]);
+			if (firstcall) kt.private.applyBindings(viewmodel,target);
+			firstcall = false;
+			
+		});
+	};
+	viewmodel.refresh();
+	viewmodel.createItem = {};
+	addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
 };
 
 kt.create = function(modelname,predicate)
 {	
-	kt.private.checkCache(modelname, "create", function() { 
-		var viewmodel = {};
-		var modelApiBase = basePath + modelname;
-		viewmodel.errors = ko.observableArray([]);
+	var viewmodel = {};
+	var modelApiBase = basePath + modelname;
+	viewmodel.errors = ko.observableArray([]);
 
-		// CREATE
-		// create a dummy model so we have all the fields and properties
-		// var blank = model.blank;
-		addCreateItem(viewmodel,modelApiBase,predicate,modelname,true);
-		return viewmodel;
-	});
+	// CREATE
+	// create a dummy model so we have all the fields and properties
+	// var blank = model.blank;
+	addCreateItem(viewmodel,modelApiBase,predicate,modelname,true);
 };
 
 kt.read = function(modelname,id)
 {	
-	kt.private.checkCache(modelname, "read", function() { 
-		var viewmodel = {};
-		var modelApiBase = basePath + modelname;
-		viewmodel.errors = ko.observableArray([]);
-		
-		var target = kt.private.target[0];
+	var viewmodel = {};
+	var modelApiBase = basePath + modelname;
+	viewmodel.errors = ko.observableArray([]);
+	
+	var target = kt.private.target[0];
 
-		viewmodel.error = ko.observable(null);
-		var firstcall = true;
-		viewmodel.refresh = function() { 
-			$.get(modelApiBase + '/' + id, function(data) {
-				if (firstcall) viewmodel.item = ko.mapping.fromJS(data, mappingOptions);
-				else ko.mapping.fromJS(data, mappingOptions, viewmodel.item);
-				if (firstcall) kt.private.applyBindings(viewmodel,target);
-				firstcall = false;
+	viewmodel.error = ko.observable(null);
+	var firstcall = true;
+	viewmodel.refresh = function() { 
+		$.get(modelApiBase + '/' + id, function(data) {
+			if (firstcall) viewmodel.item = ko.mapping.fromJS(data, mappingOptions);
+			else ko.mapping.fromJS(data, mappingOptions, viewmodel.item);
+			if (firstcall) kt.private.applyBindings(viewmodel,target);
+			firstcall = false;
+		});
+	};
+	viewmodel.submitUpdate = function() {
+		var data = ko.mapping.toJS(viewmodel.item);
+		var json = JSON.stringify(data);
+		if (verbose) console.log("POSTing to UPDATE: " + json);
+		$.ajax({type: "POST",url:modelApiBase+'/'+data._id,data:json, 
+				contentType:"application/json; charset=utf-8",dataType:"json"})
+			.done(function(result) {
+				// clear dirty flag
+				viewmodel.item.isDirty(false);
+				viewmodel.error(null);
+			})
+			.fail(function(jqXHR) { 
+				viewmodel.error(getMeanifyError(jqXHR));						
 			});
-		};
-		viewmodel.submitUpdate = function() {
-			var data = ko.mapping.toJS(viewmodel.item);
-			var json = JSON.stringify(data);
-			if (verbose) console.log("POSTing to UPDATE: " + json);
-			$.ajax({type: "POST",url:modelApiBase+'/'+data._id,data:json, 
-					contentType:"application/json; charset=utf-8",dataType:"json"})
-				.done(function(result) {
-					// clear dirty flag
-					viewmodel.item.isDirty(false);
-					viewmodel.error(null);
-				})
-				.fail(function(jqXHR) { 
-					viewmodel.error(getMeanifyError(jqXHR));						
-				});
-		}
-		viewmodel.submitDelete = function () {
-			var data = ko.mapping.toJS(viewmodel.item);
-			if (verbose) console.log("DELETING: " + data);
-			$.ajax({type: "DELETE",url:modelApiBase+'/'+data._id})
-				.done(function(result) {
-					// redirect to... ???
-				})
-				.fail(function(jqXHR) { 
-					viewmodel.error(getMeanifyError(jqXHR));							
-				});
-		}
-		
-		viewmodel.refresh();
-		return viewmodel;
-	});
+	}
+	viewmodel.submitDelete = function () {
+		var data = ko.mapping.toJS(viewmodel.item);
+		if (verbose) console.log("DELETING: " + data);
+		$.ajax({type: "DELETE",url:modelApiBase+'/'+data._id})
+			.done(function(result) {
+				// redirect to... ???
+			})
+			.fail(function(jqXHR) { 
+				viewmodel.error(getMeanifyError(jqXHR));							
+			});
+	}
+	
+	viewmodel.refresh();
 };
 
 
@@ -509,10 +481,8 @@ function addCreateItem(viewmodel,modelApiBase,filter,modelname,doApplyBindings)
 			});
 		}
 		viewmodel.addToSearch = function() {
-			var viewmodelKey = modelname + ',searchEdit'; // used to uniquely identify the viewmodel
-
-			var search = viewmodels[viewmodelKey];
-			if (!search) throw new Error("Could not find SEARCH viewmodel (an element with attribute data-knockthru='"+modelname+",search')");
+			var search = kt.getSearch(0);
+			if (!search) throw new Error("Could not find SEARCH viewmodel");
 			var newItem = ko.mapping.fromJS(ko.mapping.toJS(viewmodel.item),mappingOptions);
 			search.items.push(newItem);
 			search.created.push(newItem);
