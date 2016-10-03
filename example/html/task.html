@@ -10,7 +10,7 @@
 	<script src='/kt/knockthru.js'></script>
 </head>
 <body>
-<div class="container" data-knockthru='kt.read("Task", getUrlParameter("_id"))'>
+<div class="container" data-knockthru='kt.read("Task", kt.getUrlParameter("_id"))'>
 
     <h1>Task</h1>
     <div data-bind='with: item' >

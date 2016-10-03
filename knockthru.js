@@ -4,14 +4,16 @@
 	
 	<script src='/kt/knockthru.js'></script>
 	...
-	<div data-knockthru='kt.search(<modelname>[,filters])>
+	<div data-knockthru='kt.search(<modelname>[,filters])'>
 		<p data-bind='foreach: items'>
 		...
 		</p>
 	</div>
-		
-	Use the model name that meanify is publishing on the endpoints (if the pluralize option is passed, add an s to the lowercase model name...)
+
+	See the README.md for full details
 */
+
+// INFRASTRUCTURE
 
 // find the path to this script, which is also the base path for the meanify endpoints
 var scripts = document.getElementsByTagName("script");
@@ -27,6 +29,8 @@ if (typeof ko === "undefined") throw new Error("Knockout must be included - add 
 "	<script src='https://cdnjs.cloudflare.com/ajax/libs/knockout/3.3.0/knockout-min.js' ></script>\n");
 if (!ko.mapping) throw new Error("Knockout.mapping must be included - add this to the html head section:\n"+
 "	<script src='https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js' ></script>");
+
+// KNOCKOUT ENHANCEMENTS
 
 // Define the dirtyFlag function which returns true if the root is modified
 ko.dirtyFunc = function (root) { 
@@ -94,37 +98,40 @@ if (!ko.bindingHandlers.onEnterKey)
 		}
 	};
 
-// for getting the URL	
-function getUrlParameter(name) {
-    return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null;
-}
-// returns the last part of the path (an alternative way of finding the id)
-function getUrlPathTail() {
-    return location.pathname.substr(location.pathname.lastIndexOf('/') + 1);
-}
-var viewmodels = {};
+// KNOCKTHRU
 
-// read,modelname/{scriptvar} - read single record
-// searchedit,modelname[?field1=value1,...] - search for records
-// search,modelname[?field1=value1,...] - search for records
-// create,modelname/{scriptvar} - write single record
-var re = /([^,]+),([^?/]+)([/?])?(.*)?/;
-
-// our namespace - kt
+// The namespace - kt
 var kt = kt || {};
 
-// by default, not verbose.  overide in page script.
+// Utility for getting querystring parameters, intended to be used for passing parameters to the viewmodel functions
+// e.g. <div class="container" data-knockthru='kt.read("Task", kt.getUrlParameter("_id"))'>	
+kt.getUrlParameter = function (name) {
+    return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.search)||[,""])[1].replace(/\+/g, '%20'))||null;
+}
+
+// Returns the last part of the path in case you want to pick up parameters from the path
+// If you're using this then you need to set the web server to serve up the page for all matching urls accordingly
+// e.g. If the url was "http://host/tasks/1234" then it would return 1234
+// e.g. <div class="container" data-knockthru='kt.read("Task", kt.getUrlPathTail())'>	
+kt.getUrlPathTail = function () {
+    return location.pathname.substr(location.pathname.lastIndexOf('/') + 1);
+}
+
+// By default, not verbose. Override in page script.
 kt.verbose = false;
 
-// our container for private functions (they'll be accessible but we just want to make it easier for developers to see
-// what functions they can use)
+// Our container for private functions (they'll be accessible but we just want to steer developers towards the 
+// non private ones if they are able to browse the namespace
 kt.private = {};
 
-//http://stackoverflow.com/questions/5728558/get-the-dom-path-of-the-clicked-a
-function getDomPath(el) {
+// PRIVATE KNOCKTHRU STUFF
+
+// util function to describe an element to the developer so that they can find it
+// inspired by http://stackoverflow.com/questions/5728558/get-the-dom-path-of-the-clicked-a
+kt.private.getDomPath = function (el) {
   var stack = [];
   while ( el.parentNode != null ) {
-    //console.log(el.nodeName);
+    console.log(el.nodeName);
     var sibCount = 0;
     var sibIndex = 0;
     for ( var i = 0; i < el.parentNode.childNodes.length; i++ ) {
@@ -138,6 +145,8 @@ function getDomPath(el) {
     }
     if ( el.hasAttribute('id') && el.id != '' ) {
       stack.unshift(el.nodeName.toLowerCase() + '#' + el.id);
+	} else if (el.hasAttribute('class') && el.class != '') {
+      stack.unshift(el.nodeName.toLowerCase() + '.' + el.class);		
     } else if ( sibCount > 1 ) {
       stack.unshift(el.nodeName.toLowerCase() + ':eq(' + sibIndex + ')');
     } else {
@@ -149,56 +158,133 @@ function getDomPath(el) {
   return stack.slice(1); // removes the html element
 }
 
-// applybindings method
+// Applybindings method used to give more user friendly message if the developer falls into a common pitfall
 kt.private.applyBindings = function(viewmodel,targetOverride) {
 try {
 		if (!targetOverride) targetOverride = kt.private.target[0];
-		console.log('binding ' + getDomPath(targetOverride));
+		console.log('binding ' + kt.private.getDomPath(targetOverride));
 		ko.applyBindings(viewmodel, targetOverride);	
 	} catch (e) {
 		if (e.message.indexOf("multiple times to the same element") > 0) throw new Error("Multiple knockout viewmodels are being applied to the "+
-		"element identified by " + getDomPath(targetOverride) + ".  Check you haven't got one viewmodel target enclosed within another");
+		"element identified by " + kt.private.getDomPath(targetOverride) + ".  Check you haven't got one viewmodel target enclosed within another");
 		else throw e;
 	}
 };
 
-// find all the viewmodel targets
+// Extract a meaningful error from the meanify response
+kt.private.getMeanifyError = function(jqXHR)
+{
+	try {
+		var resp = JSON.parse(jqXHR.responseText);
+	} catch (e) {
+		// if the response isn't JSON, just return it as text
+		return jqXHR.responseText;
+	}
+	if (kt.verbose) console.log(resp);	
+	if (resp.errors && resp.errors.description) return resp.errors.description.message;
+	else return jqXHR.responseText;
+}
+
+// In both the search viewmodels and of course the create viewmodel we want to have a 'blank' data item
+// to bind to
+kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doApplyBindings)
+{
+	// since we do callbacks store the target on the stack so that it can be used by the callback
+	var target = kt.private.target[0];
+    var blank = null;
+
+	// run the query to get the blank
+	$.ajax({type: "POST",url:modelApiBase})
+		.done(function(data) { 
+			blank = data;
+			// apply any other pre-set values
+			if (filter)
+			{
+				for (var f in filter)
+					blank[f] = filter[f];                    
+			}
+			viewmodel.item = ko.mapping.fromJS(blank, mappingOptions);
+			if (doApplyBindings) kt.private.applyBindings(viewmodel,target);
+		})
+		.fail(function(jqXHR, textStatus) { 
+			viewmodel.error("Failed to read blank endpoint for metadata: " + jqXHR.responseText); 
+		});
+	viewmodel.error = ko.observable(null);
+	viewmodel.submitCreate = function() { 
+		if (kt.verbose) console.log("POSTing to CREATE: " + ko.mapping.toJSON(viewmodel.item));
+		$.ajax({type: "POST",url:modelApiBase,data:ko.mapping.toJSON(viewmodel.item),
+			contentType:"application/json; charset=utf-8",dataType:"json"})
+		.done(function(data) { 
+			// if we succeed, expect no data just reset the form
+			ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
+			
+			// and if we detect a search on the same form, refresh it automatically
+			for (var s in kt.private.searches)
+				s.refresh();
+		})
+		.fail(function(jqXHR, textStatus) { 
+			viewmodel.error(jqXHR.responseText); 
+		});
+	}
+	viewmodel.addToSearch = function(index) {			
+		if (!index) index = 0;
+		return function()
+		{
+			var search = kt.private.searches[index];
+			if (!search) throw new Error("Could not find SEARCH viewmodel");
+			var newItem = ko.mapping.fromJS(ko.mapping.toJS(viewmodel.item),mappingOptions);
+			search.items.push(newItem);
+			search.created.push(newItem);
+			// and reset the input form
+			ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
+		}			
+	};
+}
+
+// Once the DOM has loaded, find all the viewmodel targets
 $(document).ready(function() {
-$("[data-knockthru]").each(function() {
+	$("[data-knockthru]").each(function() {
 
-	// store the target in a 'global' in our namespace that we will pick up later when binding the viewmodels
-	// if browser javascript were multithreaded this would need to done using thread local storage
-	kt.private.target = $(this);
-	console.log('set target to ' + getDomPath(kt.private.target[0]));
-	var code = kt.private.target.attr("data-knockthru");
+		// store the target in a 'global' in our namespace that we will pick up later when binding the viewmodels
+		// if browser javascript were multithreaded this would need to done using thread local storage
+		kt.private.target = $(this);
 
-	// we expect the code to be a function that sets up a viewmodel for the target
-	// like kt.search()
-	// alternatively if there is a return value then we attempt to bind it (e.g. if we pull the viewmodel from somewhere else)
-    eval(code);
+		// you read a lot of bad stuff about the eval() function but this makes things very nice and concise
+		// security-wise it's not more dangerous than the <script> tag, since the developer decides what's passed
+		// in the attribute value.
+		var code = kt.private.target.attr("data-knockthru");
+
+		// we expect the code to be a function that sets up a viewmodel for the target
+		// like kt.search()
+		// alternatively if there is a return value then we attempt to bind it (e.g. if we pull the viewmodel from somewhere else)
+		eval(code);
+	});
 });
-});
-
-var firstcall = true;
 
 // the kt.getSearch function allows additional bindings to the same search viewmodel that was defined earlier in the html page
 // it's also used by the addToSearch function to refresh the search viewmodel when you use the create model to submit a new one
 kt.private.searches = [];
+
+// THE KNOCKTHRU VIEWMODEL FUNCTIONS
+
+// Used to return a previously created search viewmodel
 kt.getSearch = function(index)
 {
 	if (!index) index = 0;
 	kt.private.applyBindings(kt.private.searches[index],kt.private.target[0]);
 }
 
-// a read-only search of the data
+// a read-only search of the data - this is a key method, see README.md
 kt.search = function(modelname, filter)
 {
 	var viewmodel = {};
-	kt.private.searches.push(viewmodel);
 	var modelApiBase = basePath + modelname;
+	var firstcall = true;
+	kt.private.searches.push(viewmodel);
 	viewmodel.errors = ko.observableArray([]);
-
 	viewmodel.items = ko.mapping.fromJS([]);
+
+	// copy the target variable to the stack since it will be referenced in a callback
 	var target = kt.private.target[0];
 	viewmodel.refresh = function() { 
 		var url = modelApiBase;
@@ -211,20 +297,17 @@ kt.search = function(modelname, filter)
 		$.get(url, function(data, status, xhr, dataType) {
 			if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure the settings path in meanify and meanifyPath in knockthru match, and that nothing else could be handling this url as well.");
 			ko.mapping.fromJS(data, mappingOptions, viewmodel.items);
-			//viewmodel.deleted([]);
-			//viewmodel.created([]);
 			viewmodel.errors([]);
 			if (firstcall) kt.private.applyBindings(viewmodel,target);
 			firstcall = false;
-			//if (next) next();
 		});
 	};
 	viewmodel.refresh();
 	viewmodel.createItem = {};
-	addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
+	kt.private.addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
 };
 
-
+// a search that provides the ability to edit 'in page' and submit all changes at the end
 kt.searchEdit = function(modelname, filter)
 {
 	var viewmodel = {};
@@ -280,7 +363,7 @@ kt.searchEdit = function(modelname, filter)
 				})
 				.fail(function(jqXHR) { 
 					// add error
-					viewmodel.errors.push(getMeanifyError(jqXHR));							
+					viewmodel.errors.push(kt.private.getMeanifyError(jqXHR));							
 					next();
 				}) 
 			});
@@ -300,7 +383,7 @@ kt.searchEdit = function(modelname, filter)
 				})
 				.fail(function(jqXHR) { 
 					// add error
-					viewmodel.errors.push(getMeanifyError(jqXHR));							
+					viewmodel.errors.push(kt.private.getMeanifyError(jqXHR));							
 					next();
 				}) 
 			});
@@ -322,7 +405,7 @@ kt.searchEdit = function(modelname, filter)
 					next();
 				})
 				.fail(function(jqXHR) { 
-					viewmodel.errors.push(getMeanifyError(jqXHR));							
+					viewmodel.errors.push(kt.private.getMeanifyError(jqXHR));							
 					next();
 				});
 			});
@@ -359,9 +442,10 @@ kt.searchEdit = function(modelname, filter)
 	};
 	viewmodel.refresh();
 	viewmodel.createItem = {};
-	addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
+	kt.private.addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
 };
 
+// the create viewmodel
 kt.create = function(modelname,predicate)
 {	
 	var viewmodel = {};
@@ -371,9 +455,10 @@ kt.create = function(modelname,predicate)
 	// CREATE
 	// create a dummy model so we have all the fields and properties
 	// var blank = model.blank;
-	addCreateItem(viewmodel,modelApiBase,predicate,modelname,true);
+	kt.private.addCreateItem(viewmodel,modelApiBase,predicate,modelname,true);
 };
 
+// read provides a viewmodel with a single 'item'
 kt.read = function(modelname,id)
 {	
 	var viewmodel = {};
@@ -404,7 +489,7 @@ kt.read = function(modelname,id)
 				viewmodel.error(null);
 			})
 			.fail(function(jqXHR) { 
-				viewmodel.error(getMeanifyError(jqXHR));						
+				viewmodel.error(kt.private.getMeanifyError(jqXHR));						
 			});
 	}
 	viewmodel.submitDelete = function () {
@@ -415,82 +500,10 @@ kt.read = function(modelname,id)
 				// redirect to... ???
 			})
 			.fail(function(jqXHR) { 
-				viewmodel.error(getMeanifyError(jqXHR));							
+				viewmodel.error(kt.private.getMeanifyError(jqXHR));							
 			});
 	}
 	
 	viewmodel.refresh();
 };
 
-
-function getMeanifyError(jqXHR)
-{
-	try {
-		var resp = JSON.parse(jqXHR.responseText);
-	} catch (e) {
-		// if the response isn't JSON, just return it as text
-		return jqXHR.responseText;
-	}
-	if (kt.verbose) console.log(resp);	
-	if (resp.errors && resp.errors.description) return resp.errors.description.message;
-	else return jqXHR.responseText;
-}
-
-function addCreateItem(viewmodel,modelApiBase,filter,modelname,doApplyBindings)
-{
-	// since we do callbacks it's possible that other knockthrus may have been processed, so keep the
-	// one that the caller was concerned with
-	var target = kt.private.target[0];
-
-    var blank = null;
-		// run the query to get the blank
-		$.ajax({type: "POST",url:modelApiBase})
-			.done(function(data) { 
-                blank = data;
-                // apply any other pre-set values
-                if (filter)
-                {
-					for (var f in filter)
-						blank[f] = filter[f];                    
-                }
-				viewmodel.item = ko.mapping.fromJS(blank, mappingOptions);
-				if (doApplyBindings) kt.private.applyBindings(viewmodel,target);
-			})
-			.fail(function(jqXHR, textStatus) { 
-				viewmodel.error("Failed to read blank endpoint for metadata: " + jqXHR.responseText); 
-			});
-		viewmodel.error = ko.observable(null);
-		viewmodel.submitCreate = function() { 
-			if (kt.verbose) console.log("POSTing to CREATE: " + ko.mapping.toJSON(viewmodel.item));
-			$.ajax({type: "POST",url:modelApiBase,data:ko.mapping.toJSON(viewmodel.item),
-				contentType:"application/json; charset=utf-8",dataType:"json"})
-			.done(function(data) { 
-				// if we succeed, expect no data just reset the form
-				ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
-				
-				// and if we detect a search on the same form, refresh it automatically
-				var search = $("[data-knockthru^='search,"+modelname+"']");
-				if (search.length > 0) 
-                {
-                    search = ko.dataFor(search[0]);
-				    if (search) search.refresh();
-                }
-			})
-			.fail(function(jqXHR, textStatus) { 
-				viewmodel.error(jqXHR.responseText); 
-			});
-		}
-		viewmodel.addToSearch = function(index) {			
-			if (!index) index = 0;
-			return function()
-			{
-				var search = kt.private.searches[index];
-				if (!search) throw new Error("Could not find SEARCH viewmodel");
-				var newItem = ko.mapping.fromJS(ko.mapping.toJS(viewmodel.item),mappingOptions);
-				search.items.push(newItem);
-				search.created.push(newItem);
-				// and reset the input form
-				ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
-			}			
-		};
-}
