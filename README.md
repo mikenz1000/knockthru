@@ -1,8 +1,23 @@
 # knockthru
 
-Allows you to databind the Knockout UI in the client directly against the Mongoose datamodel without having to write glue code.
+Allows you to databind the [Knockout](http://knockoutjs.com/) UI in the browser directly against the [Mongoose](https://www.npmjs.com/package/mongoose)
+datamodel without having to write glue code.
 
-# Examples
+The data is served up to SCRUD endpoints automatically created by the embedded meanify implementation.  The knockthru.js
+file you include in the browser code looks for data-knockthru attributes on elements and creates/binds viewmodels using Knockout
+accordingly.
+
+# Complete Examples
+
+This is the best way to see knockthru in action and to understand how it works.
+
+After running ```npm update``` change to the example folder and run ```node server```
+
+The port on which the example is being served will be written to the console, typically ```http://localhost:3000```
+
+You'll need to have mongoose db running locally on port 27017
+
+# Snippet Examples
 
 To list the Tasks in a database that have done set to 0
 ```
@@ -40,6 +55,17 @@ To display a specific task identified by ?id=<some identifier> on the querystrin
             </div>
         </div>
 	</div>
+```
+
+To run knockthru with server-side filters/predicates that will allow you to ensure url re-writers can't access data they
+shouldn't be able to, e.g. to ensure all data requests have a filter on a field called ```user``` that has a value
+of ```req.user.id``` (if you are using passport, for example)
+```
+require('knockthru')(app,
+{
+    predicates: function(req, model) { return {user:req.user.id} }
+});
+
 ```
 
 # ViewModel Functions

@@ -5,7 +5,6 @@ var mongoose = require('mongoose');
 mongoose.connect('mongodb://localhost:27017/test');
 var Task = require('./task');
 
-
 // ensure we have at least two tasks
 Task.count(function(err,c) {
 	if (c == 0) {
@@ -19,7 +18,6 @@ app.use(express.static('html'));
 // serve up the knockthru js client
 require('../index.js')(app,
 {
-  meanifyPathNot:'http://localhost:3000/',
 });
 
 // create the server and run it
