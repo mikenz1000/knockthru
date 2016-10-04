@@ -17,9 +17,9 @@ The port on which the example is being served will be written to the console, ty
 
 You'll need to have mongoose db running locally on port 27017
 
-# Snippet Examples
+# Snippets
 
-To list the Tasks in a database that have done set to 0
+To list the Tasks in the server-side mongoose database that have done set to 0
 ```
 	<div data-knockthru='kt.search("Task",{done:0})'>
 		<p data-bind='foreach: items'>
@@ -32,28 +32,24 @@ To provide a box for the user to define a new Task
 ```
     <tfoot data-knockthru='kt.create("Task")' data-bind='with: item'>
         <tr>
-            <td><input type="text" class="form-control" data-bind='textInput: description, onEnterKey: (description ? $parent.submitCreate : null)' placeholder='Enter Task Description' ></td>
-            <td><button class='form-control' data-bind='enable: description, click:$parent.submitCreate'>Add</input></td>
+            <td><input type="text" data-bind='textInput: description, onEnterKey: (description ? $parent.submitCreate : null)' ></td>
+            <td><button data-bind='enable: description, click:$parent.submitCreate'>Add</input></td>
         </tr>            
     </tfoot>  
 ```
 
-To display a specific task identified by ?id=<some identifier> on the querystring
+To display a specific task identified by ?id=<some identifier> on the querystring and allow the user to edit it
 ```
 	<div data-knockthru='kt.read("Task",kt.getUrlParameter("id"))'>
 		<div data-bind='with: item' >
-            <div class="form-group">
-                <label for="descriptionInput">Description</label>        
-                <input type="text" class="form-control" id="descriptionInput" 
-                    data-bind='textInput: description'>
-                </div>
-
-            <div class="checkbox">
-                <label for="doneInput">
+            ...    
+                <input type="text" data-bind='textInput: description'>
+            ...
                 <input type='checkbox' data-bind='checked: done' id="doneInput">Done</input>
-                </label>
-            </div>
+            ...
         </div>
+        <button data-bind='enable: item.isDirty(), click:submitUpdate'>Save</button>
+        <button data-bind='click: submitDelete'>Delete</button>
 	</div>
 ```
 
