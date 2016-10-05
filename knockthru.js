@@ -178,11 +178,22 @@ kt.private.getMeanifyError = function(jqXHR)
 		var resp = JSON.parse(jqXHR.responseText);
 	} catch (e) {
 		// if the response isn't JSON, just return it as text
+		if (jqXHR.status == 404) return '404 - not found\n' + jqXHR.responseText;
+		else if (jqXHR.status == 400) return '400 - invalid request\n' + jqXHR.responseText;
 		return jqXHR.responseText;
 	}
 	if (kt.verbose) console.log(resp);	
 	if (resp.errors && resp.errors.description) return resp.errors.description.message;
 	else return jqXHR.responseText;
+}
+
+// As opposed to validation errors and business logic errors returned from the server
+// using ajax calls and rendered to the viewmodel.error observable for display in the UI,
+// this method is called when more fundamental errors occur like record not found
+// (which shouldn't happen)
+kt.private.systemError = function(message)
+{
+	console.error(message);
 }
 
 // In both the search viewmodels and of course the create viewmodel we want to have a 'blank' data item
@@ -463,18 +474,25 @@ kt.read = function(modelname,id)
 {	
 	var viewmodel = {};
 	var modelApiBase = basePath + modelname;
-	viewmodel.errors = ko.observableArray([]);
+	//viewmodel.errors = ko.observableArray([]);
 	
 	var target = kt.private.target[0];
 
 	viewmodel.error = ko.observable(null);
 	var firstcall = true;
 	viewmodel.refresh = function() { 
-		$.get(modelApiBase + '/' + id, function(data) {
+		
+		$.ajax({type:"GET", url:modelApiBase + '/' + id, 
+		contentType:'application/json; charset=utf-8',
+		dataType:'json'})
+		.done(function(data) {
 			if (firstcall) viewmodel.item = ko.mapping.fromJS(data, mappingOptions);
 			else ko.mapping.fromJS(data, mappingOptions, viewmodel.item);
 			if (firstcall) kt.private.applyBindings(viewmodel,target);
 			firstcall = false;
+		})
+		.fail(function(jqXHR) {
+			kt.private.systemError(kt.private.getMeanifyError(jqXHR));
 		});
 	};
 	viewmodel.submitUpdate = function() {
@@ -502,6 +520,38 @@ kt.read = function(modelname,id)
 			.fail(function(jqXHR) { 
 				viewmodel.error(kt.private.getMeanifyError(jqXHR));							
 			});
+	}
+	viewmodel.methods = {};
+	viewmodel.methods.upperCase = function()
+	{
+		var method = 'upperCase';
+		var data = ko.mapping.toJS(viewmodel.item);
+		var json = JSON.stringify(data);
+		if (kt.verbose) console.log("POSTing to METHOD " + method + ": " + json);
+		$.ajax({type: "POST",url:modelApiBase+'/'+data._id+'/'+method,data:json, 
+				contentType:"application/json; charset=utf-8",dataType:"json"})
+			.done(function(result) {
+				viewmodel.error(null);
+				// did we get a redirect?
+				if (result.alert) alert(result.alert);
+				else if (result.error) viewmodel.error(result.error);
+				else if (result.redirect) window.location = result.redirect;
+				else viewmodel.error("Blank response");
+				// clear dirty flag
+				//viewmodel.item.isDirty(false);
+				
+			})
+			.fail(function(jqXHR) { 
+				viewmodel.error(kt.private.getMeanifyError(jqXHR));						
+			});
+		//window.location.replace(modelApiBase+'/'+viewmodel.item._id()+'/upperCase');
+		// $.ajax({type: "POST",url:modelApiBase+'/'+viewmodel.item._id()+'/upperCase'})
+		// 	.done(function(result) {
+		// 		// redirect to... ???
+		// 	})
+		// 	.fail(function(jqXHR) { 
+		// 		viewmodel.error(kt.private.getMeanifyError(jqXHR));							
+		// 	});
 	}
 	
 	viewmodel.refresh();

@@ -98,6 +98,16 @@ function Meanify(Model, options) {
 	else
 		options._filterFunc = function(req) { return {}; };
 
+	// this option determines how we test to be sure that a method is invokable
+	if (!options.invokableMethodTest)
+		options.invokableMethodTest = function(method) { return method["isWebInvokable"]; }
+
+    var validId = function(id)
+	{
+		if (!id) return false;
+		return /^[a-fA-F0-9]{24}$/.test(id);
+	}
+	
 	meanify.search = function search(req, res, next) {
 		// TODO: Use Model.schema.paths to check/cast types.
 		var fields = req.query;
@@ -248,7 +258,12 @@ function Meanify(Model, options) {
 			}
 			if (data) {
 				// Update using simple extend.
+				var filter = options._filterFunc(req,Model);
 				for (var property in req.body) {
+
+					// do not allow writes to fields covered by predicates/filters
+					if (property in filter) continue;
+
 					data[property] = req.body[property];
 				}
 				data.save(function (err) {
@@ -276,23 +291,52 @@ function Meanify(Model, options) {
 						return next(err);
 					}
 					if (data) {
-						data[method](req, res, function (err, data) {
-							if (err) {
-								return res.status(400).send(err);
-							}
-							return res.send(data);
-						});
+						// Update using simple extend.
+						var filter = options._filterFunc(req,Model);
+						for (var property in req.body) {
+
+							// do not allow writes to fields covered by predicates/filters
+							if (property in filter) continue;
+
+							data[property] = req.body[property];
+						}
+
+						// this is awkward - quite a departure from meanify... the idea is that 
+						// since our methods get invoked using ajax, we can't send the usual
+						// redirects etc back
+						var responseWrapper = {
+							redirect: function(url) { res.send({redirect:url}); },
+							alert: function(message) { res.send({alert:message}); },
+							error: function(message) { res.status(500).send({error:message}); }
+						};
+						try {
+							data[method](req, responseWrapper);
+						} catch (e)
+						{
+							return responseWrapper.error(e.message);
+						}
+						// , function (err, data) {
+						// 	if (err) {
+						// 		return res.status(400).send(err);
+						// 	}
+						// 	return res.send(data);
+						// });
 					} else {
-						return res.status(404).send();
+						return res.status(404).send("Object not found or inaccessible");
 					}
 				});
 			} else {
-				return res.status(404).send();
+				return res.status(404).send("id parameter not supplied");
 			}
 		};
 	}
 	var methods = Model.schema.methods;
 	for (var method in methods) {
+		// Not sure why meanify iterates Model.schem.methods twice, but I guess
+		// might as well do the method test twice then. (Refactoring can happen after
+		// the hypothetical merge of my changes)
+		if (!options.invokableMethodTest(methods[method]))
+			continue;
 		meanify.update[method] = instanceMethod(method);
 	}
 
@@ -360,7 +404,7 @@ function Meanify(Model, options) {
 			delete req.query.__populate;
 		}
 
-		if (req.params.id) {
+		if (validId(req.params.id)) {
 			var fields = { '_id': req.params.id };
 			applyFilter(req,fields,options,Model);
 			Model.findOne(fields)
@@ -621,8 +665,12 @@ module.exports = function (options) {
 		
 		var methods = Model.schema.methods;
 		for (var method in methods) {
-				router.post(path + '/' + method, meanify.update[method]);
-				debug('POST   ' + path + '/' + method);
+			// prevent method execution if not web invokable
+			if (!options.invokableMethodTest(methods[method]))
+				continue;
+
+			router.post(path + '/' + method, meanify.update[method]);
+			debug('POST   ' + path + '/' + method);
 		}
 		router.delete(path, meanify.delete);
 		debug('DELETE ' + path);

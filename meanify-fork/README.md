@@ -121,7 +121,8 @@ var meanify = require('meanify')({
 	strict: false,
 	puts: true,
 	relate: true,
-	filter: { public: true } 
+	filter: { public: true },
+	invokableMethodTest: function(method) { return method["isWebInvokable"]; }
 });
 app.use(meanify());
 ```
@@ -169,6 +170,14 @@ var meanify = require('meanify')({
 });
 ```
 In this case req.user is defined by the authentication framework (e.g. http://passportjs.org/docs/authenticate) and all models in the schema have an _owner field.  To apply a filter only on certain models you can test model.modelName
+
+### invokableMethodTest
+
+A function accepting a function as an argument that returns true if the function can be invoked
+via an endpoint.  The default test is that the function object has had the property 'isWebInvokable'
+defined, however alternatives might be checking method.name.startsWith("web") or something.
+
+Functions are invoked with 
 
 ## Usage
 

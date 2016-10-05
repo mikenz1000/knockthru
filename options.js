@@ -27,6 +27,7 @@ module.exports = function(options)
 		// model is the 
 		predicates: null,
 
+
 		// these are the options to pass through to meanify
 		// the most common will be predicates, which can also be supplied directly
 		// some will be overridden by knockthru (lowercase=false,pluralise=false)
