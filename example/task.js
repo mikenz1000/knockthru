@@ -7,7 +7,7 @@ var taskSchema = mongoose.Schema({
 	done : { type : Boolean, default : false, required : true }
 });
 
-taskSchema.methods.upperCase = function(req,res,next)
+taskSchema.methods.upperCase = function(req,res)
 {
     this.description = this.description.toUpperCase();
     var instance = this;
@@ -16,7 +16,6 @@ taskSchema.methods.upperCase = function(req,res,next)
             return res.error(err);//res.status(400).send(err);
         }
         return res.redirect('/task.html?_id='+instance.id);
-//        return res.status(204).send();
     });
 }
 taskSchema.methods.upperCase.isWebInvokable = true;

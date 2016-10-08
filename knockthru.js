@@ -521,37 +521,30 @@ kt.read = function(modelname,id)
 				viewmodel.error(kt.private.getMeanifyError(jqXHR));							
 			});
 	}
-	viewmodel.methods = {};
-	viewmodel.methods.upperCase = function()
+	viewmodel.invoke = function(method) 
 	{
-		var method = 'upperCase';
-		var data = ko.mapping.toJS(viewmodel.item);
-		var json = JSON.stringify(data);
-		if (kt.verbose) console.log("POSTing to METHOD " + method + ": " + json);
-		$.ajax({type: "POST",url:modelApiBase+'/'+data._id+'/'+method,data:json, 
-				contentType:"application/json; charset=utf-8",dataType:"json"})
-			.done(function(result) {
-				viewmodel.error(null);
-				// did we get a redirect?
-				if (result.alert) alert(result.alert);
-				else if (result.error) viewmodel.error(result.error);
-				else if (result.redirect) window.location = result.redirect;
-				else viewmodel.error("Blank response");
-				// clear dirty flag
-				//viewmodel.item.isDirty(false);
-				
-			})
-			.fail(function(jqXHR) { 
-				viewmodel.error(kt.private.getMeanifyError(jqXHR));						
-			});
-		//window.location.replace(modelApiBase+'/'+viewmodel.item._id()+'/upperCase');
-		// $.ajax({type: "POST",url:modelApiBase+'/'+viewmodel.item._id()+'/upperCase'})
-		// 	.done(function(result) {
-		// 		// redirect to... ???
-		// 	})
-		// 	.fail(function(jqXHR) { 
-		// 		viewmodel.error(kt.private.getMeanifyError(jqXHR));							
-		// 	});
+		// since want to pass a parameter we need to create a functor for knockout to invoke
+		return function() 
+		{
+			var data = ko.mapping.toJS(viewmodel.item);
+			var json = JSON.stringify(data);
+			if (kt.verbose) console.log("POSTing to METHOD " + method + ": " + json);
+			$.ajax({type: "POST",url:modelApiBase+'/'+data._id+'/'+method,data:json, 
+					contentType:"application/json; charset=utf-8",dataType:"json"})
+				.done(function(result) {
+					viewmodel.error(null);
+					// did we get a redirect?
+					if (result.alert) alert(result.alert);
+					else if (result.error) viewmodel.error(result.error);
+					else if (result.redirect) window.location = result.redirect;
+					else viewmodel.error("Blank response");
+					// clear dirty flag
+					//viewmodel.item.isDirty(false);				
+				})
+				.fail(function(jqXHR) { 
+					viewmodel.error(kt.private.getMeanifyError(jqXHR));						
+				});
+		}
 	}
 	
 	viewmodel.refresh();

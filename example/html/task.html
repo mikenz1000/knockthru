@@ -29,7 +29,7 @@
     <p>
     <button class='btn btn-default' data-bind='enable: item.isDirty(), click:submitUpdate'>Save</button>
     <button class='btn btn-default' data-bind='click: submitDelete'>Delete</button>
-    <button class='btn btn-default' data-bind='click: methods.upperCase'>Func</button>
+    <button class='btn btn-default' data-bind='click: invoke("upperCase")'>Func</button>
     </p>
     <span data-bind='if: error'><div class="alert alert-danger" data-bind='text: error'></div></span>
 
