@@ -203,9 +203,11 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 	// since we do callbacks store the target on the stack so that it can be used by the callback
 	var target = kt.private.target[0];
     var blank = null;
+	var firstCall = true;
 
 	// run the query to get the blank
-	$.ajax({type: "POST",url:modelApiBase})
+	viewmodel.refresh = function() {
+		$.ajax({type: "POST",url:modelApiBase})
 		.done(function(data) { 
 			blank = data;
 			// apply any other pre-set values
@@ -215,11 +217,13 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 					blank[f] = filter[f];                    
 			}
 			viewmodel.item = ko.mapping.fromJS(blank, mappingOptions);
-			if (doApplyBindings) kt.private.applyBindings(viewmodel,target);
+			if (doApplyBindings && firstCall) kt.private.applyBindings(viewmodel,target);
+			firstCall = false;
 		})
 		.fail(function(jqXHR, textStatus) { 
 			viewmodel.error("Failed to read blank endpoint for metadata: " + jqXHR.responseText); 
 		});
+	};
 	viewmodel.error = ko.observable(null);
 	viewmodel.submitCreate = function() { 
 		if (kt.verbose) console.log("POSTing to CREATE: " + ko.mapping.toJSON(viewmodel.item));
@@ -231,7 +235,7 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 			
 			// and if we detect a search on the same form, refresh it automatically
 			for (var s in kt.private.searches)
-				s.refresh();
+				kt.private.searches[s].refresh();
 		})
 		.fail(function(jqXHR, textStatus) { 
 			viewmodel.error(jqXHR.responseText); 
@@ -250,6 +254,8 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 			ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
 		}			
 	};
+	// trigger refresh
+	viewmodel.refresh();
 }
 
 // Once the DOM has loaded, find all the viewmodel targets
