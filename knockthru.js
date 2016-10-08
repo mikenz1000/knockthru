@@ -416,9 +416,10 @@ kt.searchEdit = function(modelname, filter)
 				$.ajax({type: "POST",url:modelApiBase,data:json, 
 					contentType:"application/json; charset=utf-8",dataType:"json"})
 				.done(function(result) {
+					// re-read item from return value (in particular to pick up _id)
+					ko.mapping.fromJS(result, mappingOptions, item);
 					// clear dirty flag
 					viewmodel.created.remove(item);
-					item._id = result._id;
 					next();
 				})
 				.fail(function(jqXHR) { 
