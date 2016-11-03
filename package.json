@@ -1,6 +1,6 @@
 {
   "name": "knockthru",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Framework to allow Knockout based html UI to bind directly to server-side Mongoose (MongoDB) data models",
   "main": "index.js",
   "scripts": {
