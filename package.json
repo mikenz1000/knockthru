@@ -1,26 +1,27 @@
 {
   "name": "knockthru",
   "version": "0.0.1",
-  "description": "(In development - check back soon)",
+  "description": "Framework to allow Knockout based html UI to bind directly to server-side Mongoose (MongoDB) data models",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
-    "coverage": "istanbul cover node_modules/mocha/bin/_mocha"
   },
   "keywords": [
     "databinding",
     "crud",
-    "templates",
+    "rest",
+    "knockout",
     "server",
     "client",
-    "routing"
+    "ui",
+    "mongoose",
+    "mongodb"
   ],
   "author": "Mike Mueller",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mikenz1976/crudbind/issues"
+    "url": "https://github.com/mikenz1000/knockthru/issues"
   },
-  "homepage": "https://github.com/mikenz1976/crudbind#readme",
+  "homepage": "https://github.com/mikenz1000/knockthru#readme",
   "devDependencies": {
   },
   "dependencies": {
@@ -30,6 +31,5 @@
     "pluralize": "^1.0.3",
     "express": "^4.10.2",
     "mongoose" : "~4.1.7"
-
   }
 }

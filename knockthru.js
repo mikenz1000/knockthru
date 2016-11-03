@@ -154,7 +154,6 @@ kt.private.getDomPath = function (el) {
     }
     el = el.parentNode;
   }
-
   return stack.slice(1); // removes the html element
 }
 
@@ -204,8 +203,9 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 	var target = kt.private.target[0];
     var blank = null;
 	var firstCall = true;
-
-	// run the query to get the blank
+	viewmodel.error = ko.observable(null);
+	
+	// this queries the server for the data for the blank record
 	viewmodel.refresh = function() {
 		$.ajax({type: "POST",url:modelApiBase})
 		.done(function(data) { 
@@ -224,7 +224,6 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 			viewmodel.error("Failed to read blank endpoint for metadata: " + jqXHR.responseText); 
 		});
 	};
-	viewmodel.error = ko.observable(null);
 	viewmodel.submitCreate = function() { 
 		if (kt.verbose) console.log("POSTing to CREATE: " + ko.mapping.toJSON(viewmodel.item));
 		$.ajax({type: "POST",url:modelApiBase,data:ko.mapping.toJSON(viewmodel.item),
@@ -254,7 +253,6 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 			ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
 		}			
 	};
-	// trigger refresh
 	viewmodel.refresh();
 }
 
@@ -273,7 +271,9 @@ $(document).ready(function() {
 
 		// we expect the code to be a function that sets up a viewmodel for the target
 		// like kt.search()
-		// alternatively if there is a return value then we attempt to bind it (e.g. if we pull the viewmodel from somewhere else)
+		// we don't ask that function to return a viewmodel that we then call databind on because
+		// all the viewmodels actually databind when the response to refresh has been processed,
+		// in order to reduce the amount of flickering on-screen
 		eval(code);
 	});
 });
@@ -297,12 +297,12 @@ kt.search = function(modelname, filter)
 	var viewmodel = {};
 	var modelApiBase = basePath + modelname;
 	var firstcall = true;
+	// copy the target variable to the stack since it will be referenced in a callback
+	var target = kt.private.target[0];
 	kt.private.searches.push(viewmodel);
 	viewmodel.errors = ko.observableArray([]);
 	viewmodel.items = ko.mapping.fromJS([]);
 
-	// copy the target variable to the stack since it will be referenced in a callback
-	var target = kt.private.target[0];
 	viewmodel.refresh = function() { 
 		var url = modelApiBase;
 		if (filter)
@@ -327,12 +327,11 @@ kt.search = function(modelname, filter)
 // a search that provides the ability to edit 'in page' and submit all changes at the end
 kt.searchEdit = function(modelname, filter)
 {
+	var modelApiBase = basePath + modelname;
 	var viewmodel = {};
 	kt.private.searches.push(viewmodel);
-	var modelApiBase = basePath + modelname;
 	viewmodel.errors = ko.observableArray([]);
-	viewmodel.items = ko.mapping.fromJS([]);
-	
+	viewmodel.items = ko.mapping.fromJS([]);	
 	viewmodel.deleted = ko.observableArray([]);
 	viewmodel.created = ko.observableArray([]);
 	viewmodel.delete = function(data) {
@@ -347,13 +346,14 @@ kt.searchEdit = function(modelname, filter)
 		}
 		viewmodel.items.remove(data);
 	}
+	// updated is a list automatically computed by picking the items that have modifications
 	viewmodel.updated = ko.computed(function () { 
 		return ko.utils.arrayFilter(viewmodel.items(), function (i) { 
 			return i.isDirty(); 
 		});
 	});
 	
-	// outstanding ajax operations are here - each is a function to be called that takes a callback as a parameter which will 
+	// outstanding ajax operations are queued and executed here - each is a function to be called that takes a callback as a parameter which will 
 	// be called when done (pass or fail) and schedule the next.  It's observable so you can have a UI element bound to operations().length or something
 	viewmodel.operations = ko.observableArray([]);
 	viewmodel.startOperations = function() {
@@ -363,6 +363,8 @@ kt.searchEdit = function(modelname, filter)
 			o(viewmodel.startOperations); // will trigger another one if one remains when done
 		}
 	};
+
+	// when we submit the changes we queue all the operations up and then start them
 	viewmodel.submit = function() {
 		viewmodel.errors([]);
 		viewmodel.updated().forEach(function(item)
@@ -374,7 +376,8 @@ kt.searchEdit = function(modelname, filter)
 				$.ajax({type: "POST",url:modelApiBase+'/'+data._id,data:json, 
 					contentType:"application/json; charset=utf-8",dataType:"json"})
 				.done(function(result) {
-					// clear dirty flag
+					// succeeded the update - refresh object from database and clear dirty flag
+					ko.mapping.fromJS(result, mappingOptions, item);
 					item.isDirty(false);
 					next();
 				})
@@ -384,8 +387,6 @@ kt.searchEdit = function(modelname, filter)
 					next();
 				}) 
 			});
-			// launch operations
-			viewmodel.startOperations();
 		});
 		viewmodel.deleted().forEach(function(item)
 		{
@@ -394,18 +395,16 @@ kt.searchEdit = function(modelname, filter)
 			viewmodel.operations.push(function(next) {
 				$.ajax({type: "DELETE",url:modelApiBase+'/'+data._id})
 				.done(function(result) {
-					// remove
+					// succeeded - remove from deleted array
 					viewmodel.deleted.remove(item);
 					next();
 				})
 				.fail(function(jqXHR) { 
-					// add error
+					// failed delete
 					viewmodel.errors.push(kt.private.getMeanifyError(jqXHR));							
 					next();
 				}) 
 			});
-			// launch operations
-			viewmodel.startOperations();
 		});
 		viewmodel.created().forEach(function(item)
 		{
@@ -427,9 +426,8 @@ kt.searchEdit = function(modelname, filter)
 					next();
 				});
 			});
-			// launch operations
-			viewmodel.startOperations();
 		});
+		viewmodel.startOperations();
 	} // submit;
 	viewmodel.isDirty = ko.computed(function() {
 		return (viewmodel.created().length +
