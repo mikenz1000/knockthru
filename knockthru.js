@@ -348,8 +348,9 @@ kt.searchEdit = function(modelname, filter)
 	}
 	// updated is a list automatically computed by picking the items that have modifications
 	viewmodel.updated = ko.computed(function () { 
+		var created = viewmodel.created();
 		return ko.utils.arrayFilter(viewmodel.items(), function (i) { 
-			return i.isDirty(); 
+			return i.isDirty() && !created.includes(i); 
 		});
 	});
 	
@@ -418,6 +419,7 @@ kt.searchEdit = function(modelname, filter)
 					// re-read item from return value (in particular to pick up _id)
 					ko.mapping.fromJS(result, mappingOptions, item);
 					// clear dirty flag
+					item.isDirty(false);
 					viewmodel.created.remove(item);
 					next();
 				})
