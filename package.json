@@ -28,8 +28,10 @@
     "uglify-js": "~2.4.24",
     "body-parser": "^1.9.3",
     "debug": "^2.1.0",
-    "pluralize": "^1.0.3",
-    "express": "^4.10.2",
-    "mongoose" : "~4.1.7"
+    "pluralize": "^1.0.3"
+  },
+  "peerDependencies": {
+    "mongoose" : ">4.1.7",
+    "express": ">4.10.2"
   }
 }
