@@ -415,6 +415,13 @@ function Meanify(Model, options) {
 					return next(err);
 				}
 				if (data) {
+					// ensure all fields are populated with at least a null
+					for (var f in Model.schema.paths)
+					{
+						if (typeof data[f] === "undefined")
+							data[f] = null;
+					}
+
 					return res.send(data);
 				} else {
 					return res.status(404).send();

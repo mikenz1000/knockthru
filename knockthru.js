@@ -131,7 +131,6 @@ kt.private = {};
 kt.private.getDomPath = function (el) {
   var stack = [];
   while ( el.parentNode != null ) {
-    console.log(el.nodeName);
     var sibCount = 0;
     var sibIndex = 0;
     for ( var i = 0; i < el.parentNode.childNodes.length; i++ ) {
@@ -202,7 +201,8 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 	// since we do callbacks store the target on the stack so that it can be used by the callback
 	var target = kt.private.target[0];
     var blank = null;
-	var firstCall = true;
+	if (doApplyBindings)
+		kt.private.scheduleBind(viewmodel, target);
 	viewmodel.error = ko.observable(null);
 	
 	// this queries the server for the data for the blank record
@@ -217,8 +217,8 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 					blank[f] = filter[f];                    
 			}
 			viewmodel.item = ko.mapping.fromJS(blank, mappingOptions);
-			if (doApplyBindings && firstCall) kt.private.applyBindings(viewmodel,target);
-			firstCall = false;
+			if (doApplyBindings)
+				kt.private.checkBind(viewmodel,target);
 		})
 		.fail(function(jqXHR, textStatus) { 
 			viewmodel.error("Failed to read blank endpoint for metadata: " + jqXHR.responseText); 
@@ -278,6 +278,30 @@ $(document).ready(function() {
 	});
 });
 
+// create event we can subscribe to to process stuff after the knockthru bindings have loaded
+kt.loaded = function(handler)
+{
+	$(document).on("kt.loaded", handler);
+}
+
+// keep track of the bindings still to do 
+kt.private.toBind = [];
+kt.private.scheduleBind = function(viewmodel, target)
+{
+	console.log("Scheduling bind of " + kt.private.getDomPath(target))
+	kt.private.toBind.push([viewmodel,target]);
+}
+kt.private.checkBind = function(viewmodel,target)
+{
+	for (var i = 0;i < kt.private.toBind.length;i ++)
+	if (kt.private.toBind[i][1] == target) {
+		console.log("Doing bind of " + kt.private.getDomPath(target));
+		kt.private.toBind.splice(i,1);
+		kt.private.applyBindings(viewmodel,target);	
+		if (kt.private.toBind.length == 0) $(document).trigger("kt.loaded");	
+		return;
+	}	
+}
 // the kt.getSearch function allows additional bindings to the same search viewmodel that was defined earlier in the html page
 // it's also used by the addToSearch function to refresh the search viewmodel when you use the create model to submit a new one
 kt.private.searches = [];
@@ -296,9 +320,10 @@ kt.search = function(modelname, filter)
 {
 	var viewmodel = {};
 	var modelApiBase = basePath + modelname;
-	var firstcall = true;
+	
 	// copy the target variable to the stack since it will be referenced in a callback
 	var target = kt.private.target[0];
+	kt.private.scheduleBind(viewmodel,target);
 	kt.private.searches.push(viewmodel);
 	viewmodel.errors = ko.observableArray([]);
 	viewmodel.items = ko.mapping.fromJS([]);
@@ -315,8 +340,7 @@ kt.search = function(modelname, filter)
 			if (!(xhr.getResponseHeader('content-type').startsWith('application/json'))) throw new Error("Did not receive JSON from endpoint: " + url + ". Make sure the settings path in meanify and meanifyPath in knockthru match, and that nothing else could be handling this url as well.");
 			ko.mapping.fromJS(data, mappingOptions, viewmodel.items);
 			viewmodel.errors([]);
-			if (firstcall) kt.private.applyBindings(viewmodel,target);
-			firstcall = false;
+			kt.private.checkBind(viewmodel,target);
 		});
 	};
 	viewmodel.refresh();
@@ -437,8 +461,8 @@ kt.searchEdit = function(modelname, filter)
 				viewmodel.deleted().length) > 0;
 	});
 	
-	var firstcall = true;
 	var target = kt.private.target[0];
+	kt.private.scheduleBind(viewmodel,target);
 	viewmodel.refresh = function() { 
 		var url = modelApiBase;
 		if (filter)
@@ -453,9 +477,7 @@ kt.searchEdit = function(modelname, filter)
 			viewmodel.deleted([]);
 			viewmodel.created([]);
 			viewmodel.errors([]);
-			if (firstcall) kt.private.applyBindings(viewmodel,target);
-			firstcall = false;
-			
+			kt.private.checkBind(viewmodel,target);			
 		});
 	};
 	viewmodel.refresh();
@@ -486,17 +508,16 @@ kt.read = function(modelname,id)
 	var target = kt.private.target[0];
 
 	viewmodel.error = ko.observable(null);
-	var firstcall = true;
+	kt.private.scheduleBind(viewmodel,target);
 	viewmodel.refresh = function() { 
 		
 		$.ajax({type:"GET", url:modelApiBase + '/' + id, 
 		contentType:'application/json; charset=utf-8',
 		dataType:'json'})
 		.done(function(data) {
-			if (firstcall) viewmodel.item = ko.mapping.fromJS(data, mappingOptions);
+			if (!viewmodel.item) viewmodel.item = ko.mapping.fromJS(data, mappingOptions);
 			else ko.mapping.fromJS(data, mappingOptions, viewmodel.item);
-			if (firstcall) kt.private.applyBindings(viewmodel,target);
-			firstcall = false;
+			kt.private.checkBind(viewmodel,target);
 		})
 		.fail(function(jqXHR) {
 			kt.private.systemError(kt.private.getMeanifyError(jqXHR));
@@ -528,6 +549,15 @@ kt.read = function(modelname,id)
 				viewmodel.error(kt.private.getMeanifyError(jqXHR));							
 			});
 	}
+	addInvoke(viewmodel,modelApiBase);
+	
+	
+	viewmodel.refresh();
+};
+
+
+addInvoke = function(viewmodel,modelApiBase)
+{
 	viewmodel.invoke = function(method) 
 	{
 		// since want to pass a parameter we need to create a functor for knockout to invoke
@@ -553,7 +583,4 @@ kt.read = function(modelname,id)
 				});
 		}
 	}
-	
-	viewmodel.refresh();
-};
-
+}
