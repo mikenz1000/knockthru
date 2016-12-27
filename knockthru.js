@@ -251,8 +251,6 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 			ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
 		}			
 	};
-	if (doApplyBindings)
-		kt.private.scheduleBind(viewmodel, target);
 	viewmodel.refresh();
 }
 
@@ -271,10 +269,11 @@ $(document).ready(function() {
 
 		// we expect the code to be a function that sets up a viewmodel for the target
 		// like kt.search()
-		// we don't ask that function to return a viewmodel that we then call databind on because
-		// all the viewmodels actually databind when the response to refresh has been processed,
-		// in order to reduce the amount of flickering on-screen
-		var r = eval(code);
+		var viewmodel = eval(code);
+
+		// schedule the bind to occur later, when the viewmodel is fully loaded.
+		// (it usually requires calls to the meanify endpoints)
+		kt.private.scheduleBind(viewmodel, kt.private.target[0]);
 	});
 });
 
@@ -344,7 +343,6 @@ kt.search = function(modelname, filter)
 	};
 	viewmodel.createItem = {};
 	kt.private.addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
-	kt.private.scheduleBind(viewmodel,target);
 	viewmodel.refresh();
 	return viewmodel;
 };
@@ -482,7 +480,6 @@ kt.searchEdit = function(modelname, filter)
 	};
 	viewmodel.createItem = {};
 	kt.private.addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
-	kt.private.scheduleBind(viewmodel,target);
 	viewmodel.refresh();
 	return viewmodel;
 };
@@ -552,7 +549,6 @@ kt.read = function(modelname,id)
 			});
 	}
 	addInvoke(viewmodel,modelApiBase);
-	kt.private.scheduleBind(viewmodel,target);
 	viewmodel.refresh();
 	return viewmodel;
 };
