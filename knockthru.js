@@ -201,8 +201,6 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 	// since we do callbacks store the target on the stack so that it can be used by the callback
 	var target = kt.private.target[0];
     var blank = null;
-	if (doApplyBindings)
-		kt.private.scheduleBind(viewmodel, target);
 	viewmodel.error = ko.observable(null);
 	
 	// this queries the server for the data for the blank record
@@ -253,6 +251,8 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 			ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
 		}			
 	};
+	if (doApplyBindings)
+		kt.private.scheduleBind(viewmodel, target);
 	viewmodel.refresh();
 }
 
@@ -274,7 +274,7 @@ $(document).ready(function() {
 		// we don't ask that function to return a viewmodel that we then call databind on because
 		// all the viewmodels actually databind when the response to refresh has been processed,
 		// in order to reduce the amount of flickering on-screen
-		eval(code);
+		var r = eval(code);
 	});
 });
 
@@ -323,7 +323,6 @@ kt.search = function(modelname, filter)
 	
 	// copy the target variable to the stack since it will be referenced in a callback
 	var target = kt.private.target[0];
-	kt.private.scheduleBind(viewmodel,target);
 	kt.private.searches.push(viewmodel);
 	viewmodel.errors = ko.observableArray([]);
 	viewmodel.items = ko.mapping.fromJS([]);
@@ -343,9 +342,11 @@ kt.search = function(modelname, filter)
 			kt.private.checkBind(viewmodel,target);
 		});
 	};
-	viewmodel.refresh();
 	viewmodel.createItem = {};
 	kt.private.addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
+	kt.private.scheduleBind(viewmodel,target);
+	viewmodel.refresh();
+	return viewmodel;
 };
 
 // a search that provides the ability to edit 'in page' and submit all changes at the end
@@ -462,7 +463,6 @@ kt.searchEdit = function(modelname, filter)
 	});
 	
 	var target = kt.private.target[0];
-	kt.private.scheduleBind(viewmodel,target);
 	viewmodel.refresh = function() { 
 		var url = modelApiBase;
 		if (filter)
@@ -480,9 +480,11 @@ kt.searchEdit = function(modelname, filter)
 			kt.private.checkBind(viewmodel,target);			
 		});
 	};
-	viewmodel.refresh();
 	viewmodel.createItem = {};
 	kt.private.addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
+	kt.private.scheduleBind(viewmodel,target);
+	viewmodel.refresh();
+	return viewmodel;
 };
 
 // the create viewmodel
@@ -496,6 +498,7 @@ kt.create = function(modelname,predicate)
 	// create a dummy model so we have all the fields and properties
 	// var blank = model.blank;
 	kt.private.addCreateItem(viewmodel,modelApiBase,predicate,modelname,true);
+	return viewmodel;
 };
 
 // read provides a viewmodel with a single 'item'
@@ -508,7 +511,6 @@ kt.read = function(modelname,id)
 	var target = kt.private.target[0];
 
 	viewmodel.error = ko.observable(null);
-	kt.private.scheduleBind(viewmodel,target);
 	viewmodel.refresh = function() { 
 		
 		$.ajax({type:"GET", url:modelApiBase + '/' + id, 
@@ -550,9 +552,9 @@ kt.read = function(modelname,id)
 			});
 	}
 	addInvoke(viewmodel,modelApiBase);
-	
-	
+	kt.private.scheduleBind(viewmodel,target);
 	viewmodel.refresh();
+	return viewmodel;
 };
 
 
