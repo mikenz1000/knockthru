@@ -1,7 +1,7 @@
 {
   "name": "knockthru",
-  "version": "0.0.3",
-  "description": "Framework to allow Knockout based html UI to bind directly to server-side Mongoose (MongoDB) data models",
+  "version": "0.1.0",
+  "description": "Node.js module to allow Knockout based html UI to bind directly to server-side Mongoose (MongoDB) data models",
   "main": "index.js",
   "scripts": {
   },
@@ -14,7 +14,8 @@
     "client",
     "ui",
     "mongoose",
-    "mongodb"
+    "mongodb",
+    "express"
   ],
   "author": "Mike Mueller",
   "license": "MIT",
