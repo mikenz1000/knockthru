@@ -1,6 +1,6 @@
 # knockthru
 
-Allows you to databind the [Knockout](http://knockoutjs.com/) UI in the browser directly against the [Mongoose](https://www.npmjs.com/package/mongoose)
+Node.js module that allows you to databind the [Knockout](http://knockoutjs.com/) UI in the browser directly against the [Mongoose](https://www.npmjs.com/package/mongoose)
 datamodel without having to write glue code.
 
 The data is served up to SCRUD endpoints automatically created by the embedded meanify implementation.  The knockthru.js
@@ -72,12 +72,12 @@ These methods can be used in the data-knockthru attributes
 
 Generates a viewmodel the can display a readonly list of items
 
-|element    | description                                                                            |
+|element    |description                                                                            |
 |-----------|----------------------------------------------------------------------------------------|
-|items      | an observable array of the result of the search                                        |
-|createItem | an observable 'blank' you can bind to for create functionality (see create)            |
-|errors     | an observable list of strings detailing any errors / validation errors from the server |
-|refresh    | event handler to re-run the query                                                      |
+|items      |an observable array of the result of the search                                        |
+|createItem |an observable 'blank' you can bind to for create functionality (see create)            |
+|errors     |an observable list of strings detailing any errors / validation errors from the server |
+|refresh    |event handler to re-run the query                                                      |
 
 
 ## kt.searchEdit(modelname[, filters])
@@ -86,13 +86,13 @@ Generates a viewmodel for an editable list of items
 
 |element    | description                                                                            |
 |-----------|----------------------------------------------------------------------------------------|
-|items      | an observable array of the result of the search                                        |
-|createItem | an observable 'blank' you can bind to for create functionality (see create)            |
-|errors     | an observable list of strings detailing any errors / validation errors from the server |
-|isDirty    | observable boolean indicating whether changes have been made                           |
-|delete     | event handler to delete an item                                                        |
-|submit     | event handler to save all the changes made                                             |
-|refresh    | event handler to re-run the query                                                      |
+|items      |an observable array of the result of the search                                        |
+|items[].delete     |handler to delete an item                                                        |
+|createItem |an observable 'blank' you can bind to for create functionality (see create)            |
+|errors     |an observable list of strings detailing any errors / validation errors from the server |
+|isDirty    |observable boolean indicating whether changes have been made                           |
+|submit     |event handler to save all the changes made                                             |
+|refresh    |event handler to re-run the query                                                      |
 
 Note on delete: use within the context of one of the items array e.g. data-bind='click:$parent.delete' 
 ```
@@ -108,22 +108,24 @@ Note on delete: use within the context of one of the items array e.g. data-bind=
 
 Generates a viewmodel for creating a new item.  The default values of the fields are obtained from the server.
 
-|element    | description                                                                            |
+|element    |description                                                                            |
 |-----------|----------------------------------------------------------------------------------------|
-|blank      | an observable blank item with fields populated with default values from the server     |
-|error      | an observable string detailing any errors / validation errors from the server          |
-|submitCreate | event handler to write the new item to the server                                    |
-|addToSearch  | event handler to add the item to a search/searchEdit viewmodel on the page           |
+|blank      |an observable blank item with fields populated with default values from the server     |
+|error      |an observable string detailing any errors / validation errors from the server          |
+|submitCreate |event handler to write the new item to the server                                    |
+|addToSearch  |event handler to add the item to a search/searchEdit viewmodel on the page.  Pass the html element that has the data-knockthru attribute (e.g. document.getElementById('...'))     |
 
 ## kt.read(modelname, id)
 
 Generates a viewmodel for binding to a specific item in the database, identified by the id
 
-|element    | description                                                                            |
+|element    |description                                                                            |
 |-----------|----------------------------------------------------------------------------------------|
-|item       | an observable item representing the object read from the server                        |
-|error      | an observable string detailing any errors / validation errors from the server          |
-|refresh    | event handler to re-run the query                                                      |
-|submitUpdate | event handler to write the new item to the server                                    |
-|submitDelete | event handler to write the new item to the server                                    |
+|item       |an observable item representing the object read from the server                        |
+|error      |an observable string detailing any errors / validation errors from the server          |
+|refresh    |event handler to re-run the query                                                      |
+|submitUpdate |event handler to write the new item to the server                                    |
+|submitDelete |event handler to write the new item to the server                                    |
 
+For the id parameter you typically could use either kt.getUrlParameter('_id') or kt.getUrlPathTail() to grab
+the id from the url.
