@@ -11,12 +11,12 @@
 	<script src='/kt/knockthru.js'></script>
 </head>
 <body>
-<div class="container">
+<div class="container" data-knockthru='kt.searchEdit("Task")'>
 
     <h1>Tasks</h1>
     
     <table class='table' >
-        <tbody data-knockthru='kt.searchEdit("Task")' data-bind='foreach: items'>
+        <tbody data-bind='foreach: items'>
             <tr>
                 <td width='4em'><input type='checkbox' data-bind='checked: done'></td>
                 <td><span contenteditable='true' data-bind='content: description, valueUpdate: keyup' ></span></td>
@@ -26,13 +26,13 @@
         <tfoot data-knockthru='kt.create("Task")' data-bind='with: item'>
             <tr>
                 <td></td>
-                <td><input type="text" class="form-control" data-bind='textInput: description, onEnterKey: (description ? $parent.addToSearch(0) : null)' placeholder='Enter Task Description' ></td>
-                <td width='20em'><button class='form-control' data-bind='enable: description, click:$parent.addToSearch(0)'>Add</input></td>
+                <td><input type="text" class="form-control" data-bind='textInput: description, onEnterKey: (description ? $parent.addToSearch(document.getElementsByClassName("container")[0]) : null)' placeholder='Enter Task Description' ></td>
+                <td width='20em'><button class='form-control' data-bind='enable: description, click:$parent.addToSearch(document.getElementsByClassName("container")[0])'>Add</input></td>
             </tr>            
         </tfoot>    
     </table>
     
-    <div data-knockthru='kt.getSearch()'>    <!-- this is a second target bound to the same viewmodel as above -->
+    <div>    
         <button class='form-control' data-bind='click: submit, enable: isDirty'>Save</button><br/>
         <button class='form-control' data-bind='click: refresh'>Refresh</button><br/>
         

@@ -582,7 +582,7 @@ function Meanify(Model, options) {
 	for (var path in Model.schema.paths)
 	{
 		// since we'd never need to bind these to the UI, let the defaults be generated at CREATE time instead
-		if ((path == '__v') || (path == '_id')) continue; 
+		if ((path == '__v')) continue; 
 		
 		var def =  Model.schema.paths[path].defaultValue;
 		if (typeof def === "undefined") def = null;

@@ -129,6 +129,7 @@ kt.private = {};
 // util function to describe an element to the developer so that they can find it
 // inspired by http://stackoverflow.com/questions/5728558/get-the-dom-path-of-the-clicked-a
 kt.private.getDomPath = function (el) {
+	if (el == null) return 'null';
   var stack = [];
   while ( el.parentNode != null ) {
     var sibCount = 0;
@@ -215,8 +216,8 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 					blank[f] = filter[f];                    
 			}
 			viewmodel.item = ko.mapping.fromJS(blank, mappingOptions);
-			if (doApplyBindings)
-				kt.private.checkBind(viewmodel,target);
+			//if (doApplyBindings)
+				kt.private.checkBind(viewmodel,doApplyBindings ? target : null);
 		})
 		.fail(function(jqXHR, textStatus) { 
 			viewmodel.error("Failed to read blank endpoint for metadata: " + jqXHR.responseText); 
@@ -238,12 +239,10 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 			viewmodel.error(jqXHR.responseText); 
 		});
 	}
-	viewmodel.addToSearch = function(index) {			
-		if (!index) index = 0;
+	viewmodel.addToSearch = function(element) {			
+		var search = kt.dataFor(element);
 		return function()
 		{
-			var search = kt.private.searches[index];
-			if (!search) throw new Error("Could not find SEARCH viewmodel");
 			var newItem = ko.mapping.fromJS(ko.mapping.toJS(viewmodel.item),mappingOptions);
 			search.items.push(newItem);
 			search.created.push(newItem);
@@ -251,11 +250,15 @@ kt.private.addCreateItem = function (viewmodel,modelApiBase,filter,modelname,doA
 			ko.mapping.fromJS(blank, mappingOptions, viewmodel.item);
 		}			
 	};
+	kt.private.scheduleBind(viewmodel, doApplyBindings ? target : null);
 	viewmodel.refresh();
 }
 
 // Once the DOM has loaded, find all the viewmodel targets
 $(document).ready(function() {
+	kt.private.rootViewModel = {};
+	var i = 0;
+
 	$("[data-knockthru]").each(function() {
 
 		// store the target in a 'global' in our namespace that we will pick up later when binding the viewmodels
@@ -271,9 +274,17 @@ $(document).ready(function() {
 		// like kt.search()
 		var viewmodel = eval(code);
 
+		// generate a name for this part of the viewmodel
+		var path = 'vm'+(++i);
+		kt.private.rootViewModel[path] = viewmodel;
+
+		// create the with attribute around the tag so that we can immediately
+		// use with: in the tag's binding itself
+		$(this).before("<!-- ko with: $root." + path + " -->");
+		$(this).after("<!-- /ko -->");
+
 		// schedule the bind to occur later, when the viewmodel is fully loaded.
 		// (it usually requires calls to the meanify endpoints)
-		kt.private.scheduleBind(viewmodel, kt.private.target[0]);
 	});
 });
 
@@ -293,25 +304,41 @@ kt.private.scheduleBind = function(viewmodel, target)
 kt.private.checkBind = function(viewmodel,target)
 {
 	for (var i = 0;i < kt.private.toBind.length;i ++)
-	if (kt.private.toBind[i][1] == target) {
+	if (kt.private.toBind[i][0] == viewmodel && kt.private.toBind[i][1] == target) {
 		console.log("Doing bind of " + kt.private.getDomPath(target));
 		kt.private.toBind.splice(i,1);
-		kt.private.applyBindings(viewmodel,target);	
-		if (kt.private.toBind.length == 0) $(document).trigger("kt.loaded");	
+		//kt.private.applyBindings(viewmodel,target);	
+		if (kt.private.toBind.length == 0) 
+		{
+			kt.private.applyBindings(kt.private.rootViewModel,document.body);	
+			$(document).trigger("kt.loaded");	
+		}
 		return;
 	}	
 }
+
 // the kt.getSearch function allows additional bindings to the same search viewmodel that was defined earlier in the html page
 // it's also used by the addToSearch function to refresh the search viewmodel when you use the create model to submit a new one
 kt.private.searches = [];
 
 // THE KNOCKTHRU VIEWMODEL FUNCTIONS
 
-// Used to return a previously created search viewmodel
-kt.getSearch = function(index)
+// Returns the viewmodel that knockthru has generated for the given target element
+// that must have had the data-knockthru element applied to it.
+// The benefit of using this instead of ko.dataFor is that it will return the as-yet
+// unbound viewmodels as well (i.e. it works before kt.loaded and so can be used in
+// data-knockthru attributes)
+kt.dataFor = function(target)
 {
-	if (!index) index = 0;
-	kt.private.applyBindings(kt.private.searches[index],kt.private.target[0]);
+	for (var i = 0;i < kt.private.toBind.length;i ++)
+		if (kt.private.toBind[i][1] == target)
+			return kt.private.toBind[i][0];
+	
+	// try to fall back to calling the knockout dataFor function, in case this is after kt.loaded
+	var result = ko.dataFor(target);
+	if (result != null) return result;
+
+	throw new Error("The target element supplied to kt.dataFor (" + kt.private.getDomPath(target) + ") does not appear to have a data-knockthru binding. ");
 }
 
 // a read-only search of the data - this is a key method, see README.md
@@ -343,6 +370,7 @@ kt.search = function(modelname, filter)
 	};
 	viewmodel.createItem = {};
 	kt.private.addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
+	kt.private.scheduleBind(viewmodel, target);
 	viewmodel.refresh();
 	return viewmodel;
 };
@@ -480,6 +508,7 @@ kt.searchEdit = function(modelname, filter)
 	};
 	viewmodel.createItem = {};
 	kt.private.addCreateItem(viewmodel.createItem,modelApiBase,filter,modelname,false);
+	kt.private.scheduleBind(viewmodel, target);
 	viewmodel.refresh();
 	return viewmodel;
 };
@@ -549,6 +578,7 @@ kt.read = function(modelname,id)
 			});
 	}
 	addInvoke(viewmodel,modelApiBase);
+	kt.private.scheduleBind(viewmodel, target);
 	viewmodel.refresh();
 	return viewmodel;
 };

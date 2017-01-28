@@ -11,12 +11,12 @@
 	<script src='/kt/knockthru.js'></script>
 </head>
 <body>
-<div class="container">
+<div class="container"  data-knockthru='kt.search("Task")'>
 
     <h1>Tasks</h1>
     
     <table class='table' >
-        <tbody data-knockthru='kt.search("Task")', data-bind='foreach: items'>
+        <tbody data-bind='foreach: items'>
             <tr>
                 <td width='4em'>
                     <input type='checkbox' disabled=disabled data-bind='checked: done'>
@@ -36,7 +36,7 @@
         </tfoot>    
     </table>
     
-    <div data-knockthru='kt.getSearch()'>    <!-- this is a second target bound to the same viewmodel as above -->
+    <div>    <!-- this is a second target bound to the same viewmodel as above -->
         <button class='form-control' data-bind='click: refresh'>Refresh</button><br/>
     </div>
      
